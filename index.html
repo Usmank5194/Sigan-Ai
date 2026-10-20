@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Sigan Ai - Voice Call</title>
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #1e1e1e;
+  --surface-hover: #2d2d2d;
+  --text: #f3f4f6;
+  --text-muted: #9ca3af;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --border: #333333;
+  --danger: #ef4444;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea { font-family: inherit; outline: none; border: none; background: none; color: inherit; }
+a { color: var(--primary); text-decoration: none; }
+
+.app { display: flex; height: 100vh; height: 100dvh; position: relative; flex-direction: column; }
+
+/* HEADER */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top));
+  background: var(--bg); z-index: 10;
+}
+.header-title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.header-title span { font-size: 20px; }
+.icon-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: var(--text-muted); }
+.icon-btn:hover { background: var(--surface); color: var(--text); }
+.icon-btn svg { width: 22px; height: 22px; }
+
+/* CHAT AREA */
+.chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; scroll-behavior: smooth; }
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* WELCOME SCREEN */
+.welcome { margin: auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.welcome-logo { font-size: 48px; margin-bottom: 8px; }
+.welcome h2 { font-size: 24px; font-weight: 500; color: var(--text); }
+.welcome p { font-size: 14px; color: var(--text-muted); max-width: 280px; line-height: 1.5; }
+
+/* MESSAGES */
+.messages { width: 100%; max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; padding-bottom: 20px; }
+.messages:empty { display: none; }
+
+.msg { display: flex; flex-direction: column; max-width: 100%; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.msg.user { align-items: flex-end; }
+.msg.user .bubble { background: var(--surface); padding: 12px 18px; border-radius: 20px; border-bottom-right-radius: 4px; font-size: 15px; line-height: 1.5; max-width: 85%; word-wrap: break-word; }
+.msg.user img { max-width: 200px; border-radius: 12px; margin-bottom: 8px; }
+
+.msg.model { align-items: flex-start; }
+.msg.model .bubble { width: 100%; font-size: 15px; line-height: 1.6; word-wrap: break-word; color: #e5e5e5; }
+.msg.error .bubble { color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 12px; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 14px; }
+
+/* MARKDOWN STYLES */
+.bubble h1, .bubble h2, .bubble h3 { margin: 16px 0 8px; font-weight: 600; color: #fff; }
+.bubble h1 { font-size: 20px; } .bubble h2 { font-size: 18px; } .bubble h3 { font-size: 16px; }
+.bubble p { margin-bottom: 12px; }
+.bubble ul, .bubble ol { margin-bottom: 12px; padding-left: 24px; }
+.bubble li { margin-bottom: 6px; }
+.bubble strong { font-weight: 600; color: #fff; }
+.bubble code { background: #2d2d2d; padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 13px; color: #a78bfa; }
+.code-container { position: relative; margin: 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+.bubble pre { background: #000; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5; color: #e5e5e5; }
+.bubble pre code { background: none; padding: 0; color: inherit; font-family: ui-monospace, monospace; }
+.copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); color: #ccc; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; transition: 0.2s; }
+.copy-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.copy-btn.copied { background: #10b981; color: #fff; }
+
+/* LOADING DOTS */
+.typing { display: flex; gap: 4px; padding: 8px 0; }
+.typing span { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: blink 1.4s infinite both; }
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+/* INPUT AREA & CHIPS */
+.input-wrapper {
+  padding: 10px 20px 20px; padding-bottom: max(20px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 70%, transparent);
+  display: flex; flex-direction: column; align-items: center;
+}
+.chips-container {
+  width: 100%; max-width: 800px; display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px;
+  padding-bottom: 4px; scrollbar-width: none;
+}
+.chips-container::-webkit-scrollbar { display: none; }
+.chip {
+  white-space: nowrap; padding: 8px 16px; border-radius: 20px;
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 13px; color: var(--text-muted); transition: 0.2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.chip:hover { background: var(--surface-hover); color: var(--text); border-color: #555; }
+
+.input-box {
+  width: 100%; max-width: 800px; background: var(--surface); border-radius: 24px;
+  display: flex; align-items: flex-end; padding: 8px 12px; border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: 0.2s;
+}
+.input-box:focus-within { border-color: #555; }
+#userInput { flex: 1; padding: 12px 8px; resize: none; font-size: 15px; line-height: 1.5; max-height: 120px; min-height: 24px; color: var(--text); background: transparent; }
+#userInput::placeholder { color: var(--text-muted); }
+
+.input-actions { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.action-btn {
+  width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); transition: 0.2s;
+}
+.action-btn:hover { background: var(--surface-hover); color: var(--text); }
+.action-btn svg { width: 20px; height: 20px; }
+.send-btn { background: #fff; color: #000; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; margin-left: 4px; transition: 0.2s; }
+.send-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
+.send-btn svg { width: 18px; height: 18px; margin-left: 2px; }
+
+/* HIDDEN INPUTS */
+#imageUpload { display: none; }
+
+/* =========================================
+   VOICE CALL UI (LAYAR PENUH)
+   ========================================= */
+.voice-overlay {
+  position: fixed; inset: 0; background: #000; z-index: 500;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 40px 20px; padding-top: max(40px, env(safe-area-inset-top)); padding-bottom: max(40px, env(safe-area-inset-bottom));
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.voice-overlay.active { opacity: 1; pointer-events: auto; }
+.voice-top { text-align: center; margin-top: 20px; }
+.voice-timer { font-size: 18px; font-weight: 500; background: #1a1a1a; padding: 6px 16px; border-radius: 20px; display: inline-block; }
+.voice-desc { color: var(--text-muted); font-size: 13px; margin-top: 12px; }
+.voice-center { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; width: 100%; }
+.orb {
+  width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb, #1e3a8a);
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.5);
+  transition: transform 0.1s;
+}
+.orb.listening {
+  animation: pulse-listening 1.5s infinite alternate;
+  background: radial-gradient(circle at 30% 30%, #60a5fa, #3b82f6, #1e40af);
+}
+.orb.speaking {
+  animation: pulse-speaking 0.8s infinite alternate;
+  background: radial-gradient(circle at 30% 30%, #a78bfa, #8b5cf6, #5b21b6);
+  box-shadow: 0 0 60px rgba(139, 92, 246, 0.6);
+}
+@keyframes pulse-listening { 0% { transform: scale(1); box-shadow: 0 0 30px rgba(59, 130, 246, 0.3); } 100% { transform: scale(1.1); box-shadow: 0 0 60px rgba(59, 130, 246, 0.7); } }
+@keyframes pulse-speaking { 0% { transform: scale(1.05); box-shadow: 0 0 50px rgba(139, 92, 246, 0.5); } 100% { transform: scale(1.15); box-shadow: 0 0 80px rgba(139, 92, 246, 0.8); } }
+
+.voice-status { font-size: 18px; font-weight: 500; margin-top: 40px; color: #e5e5e5; letter-spacing: 0.5px; }
+.voice-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 10px; text-align: center; max-width: 80%; min-height: 40px; }
+
+.voice-controls { display: flex; gap: 24px; align-items: center; justify-content: center; margin-bottom: 20px; }
+.voice-btn {
+  width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: #1a1a1a; color: #fff; transition: 0.2s;
+}
+.voice-btn.danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+.voice-btn:hover { transform: scale(1.1); }
+.voice-btn svg { width: 28px; height: 28px; }
+
+/* SIDEBAR & SETTINGS (Sama seperti sebelumnya) */
+.sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: var(--surface); z-index: 100; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+.sidebar.open { transform: translateX(0); }
+.sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); z-index: 90; display: none; }
+.sidebar-overlay.show { display: block; }
+.sidebar-head { padding: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+.brand { font-weight: 600; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+.sidebar-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.chat-item { padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; }
+.chat-item:hover, .chat-item.active { background: var(--surface-hover); }
+.chat-item-title { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.del-btn { color: var(--danger); opacity: 0; font-size: 16px; padding: 4px; }
+.chat-item:hover .del-btn { opacity: 1; }
+.sidebar-foot { padding: 16px; border-top: 1px solid var(--border); }
+.settings-btn { width: 100%; padding: 12px; background: var(--surface-hover); border-radius: 10px; font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px; justify-content: center; }
+.settings-btn:hover { background: #444; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: var(--surface); border-radius: 20px; width: 100%; max-width: 400px; border: 1px solid var(--border); overflow: hidden; }
+.modal-head { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.modal-head h3 { font-size: 16px; font-weight: 600; }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+.form-group input, .form-group select { width: 100%; padding: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 14px; }
+.modal-foot { padding: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+.btn { flex: 1; padding: 12px; border-radius: 10px; font-weight: 600; font-size: 14px; text-align: center; transition: 0.2s; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: var(--surface-hover); color: var(--text); }
+.btn-secondary:hover { background: #444; }
+.toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: #fff; color: #000; padding: 12px 24px; border-radius: 30px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 300; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: var(--danger); color: #fff; }
+.toast.success { background: #10b981; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- HEADER -->
+  <header class="header">
+    <button class="icon-btn" id="menuBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="header-title">
+      <span>❖</span> Sigan Ai
+    </div>
+    <div style="display:flex; gap:8px;">
+      <!-- TOMBOL PANGGILAN SUARA -->
+      <button class="icon-btn" id="callBtnHeader" title="Voice Call" style="color: var(--primary);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <button class="icon-btn" id="newChatBtnHeader">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- CHAT AREA -->
+  <div class="chat-area" id="chatArea">
+    <div class="welcome" id="welcome">
+      <div class="welcome-logo">👻</div>
+      <h2>Selamat Datang, Usman</h2>
+      <p>Ada yang bisa saya bantu hari ini?</p>
+    </div>
+    <div class="messages" id="messages"></div>
+  </div>
+
+  <!-- INPUT AREA -->
+  <div class="input-wrapper">
+    <div class="chips-container" id="chips">
+      <button class="chip" data-action="image"><span>🖼️</span> Gambar</button>
+      <button class="chip" data-prompt="Bantu saya membuat kode program / website untuk: "><span>💻</span> Pengembangan Web</button>
+      <button class="chip" data-prompt="Buatkan kerangka presentasi (PPT) mengenai topik: "><span>📊</span> PPT</button>
+      <button class="chip" data-prompt="Tolong terjemahkan teks berikut: "><span>🌐</span> Terjemahkan</button>
+      <button class="chip" data-prompt="Tolong rangkum dokumen berikut: "><span>📄</span> Baca File</button>
+      <button class="chip" data-prompt="Beri rekomendasi prompt foto produk untuk: "><span>📸</span> Foto Produk</button>
+    </div>
+
+    <div class="input-box">
+      <button class="action-btn" id="plusBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <textarea id="userInput" placeholder="Kirim pesan..." rows="1"></textarea>
+      <div class="input-actions">
+        <button class="action-btn" id="cameraBtn" title="Kirim Gambar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        <button class="send-btn" id="sendBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================
+     TAMPILAN PANGGILAN SUARA (VOICE CALL)
+     ========================================= -->
+<div class="voice-overlay" id="voiceOverlay">
+  <div class="voice-top">
+    <div class="voice-timer" id="callTimer">00:00 / 10:00</div>
+    <div class="voice-desc">Sigan Ai Voice Call</div>
+  </div>
+
+  <div class="voice-center">
+    <div class="orb" id="voiceOrb"></div>
+    <div class="voice-status" id="voiceStatus">Menyiapkan...</div>
+    <div class="voice-subtitle" id="voiceSubtitle"></div>
+  </div>
+
+  <div class="voice-controls">
+    <button class="voice-btn danger" id="endCallBtn" title="Akhiri Panggilan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <button class="voice-btn" id="muteCallBtn" title="Bisukan Mikrofon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- HIDDEN INPUTS & MODALS -->
+<input type="file" id="imageUpload" accept="image/*">
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <div class="brand">❖ Sigan Ai</div>
+    <button class="icon-btn" id="closeSidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="sidebar-list" id="chatList"></div>
+  <div class="sidebar-foot">
+    <button class="settings-btn" id="settingsBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Pengaturan
+    </button>
+  </div>
+</aside>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>⚙️ Pengaturan</h3>
+      <button class="icon-btn" id="closeSettings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>API Key Gemini</label>
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+      </div>
+      <div class="form-group">
+        <label>Model AI</label>
+        <select id="modelSelect">
+          <option value="gemini-flash-latest">Gemini Flash Latest (Rekomendasi)</option>
+          <option value="gemini-pro-latest">Gemini Pro Latest (Lebih Pintar)</option>
+          <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="saveSettings">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   SIGAN AI v6.0 - Voice Call Feature
+   ============================================================ */
+
+const LS_CHATS = 'sigan_chats_v4';
+const LS_API = 'sigan_api_key';
+const LS_MODEL = 'sigan_model';
+
+const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa yang dikembangkan oleh Usman Hasan.
+Karakter: Ramah, cerdas, jujur, dan modern. 
+Saat ini Anda sedang dalam mode PANGGILAN SUARA (Voice Call). 
+Berikan jawaban yang SINGKAT, PADAT, dan MUDAH DICERNA TELINGA. Jangan gunakan format markdown yang rumit (seperti tabel atau kode panjang) kecuali terpaksa. Jawab selayaknya teman bicara.`;
+
+const state = { chats: [], activeId: null, sending: false, imageBase64: null };
+let callState = { active: false, timer: null, seconds: 0, isListening: false, isSpeaking: false, muted: false };
+
+const els = {};
+['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar',
+ 'sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings','apiKeyInput',
+ 'modelSelect','saveSettings','toast','chips','imageUpload','cameraBtn','plusBtn',
+ 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','voiceSubtitle','callTimer','endCallBtn','muteCallBtn'
+].forEach(id => els[id] = document.getElementById(id));
+
+/* UTILS */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function showToast(msg, type = '') { els.toast.textContent = msg; els.toast.className = `toast show ${type}`; setTimeout(() => els.toast.classList.remove('show'), 3000); }
+
+/* CHAT CORE (SAMA SEPERTI SEBELUMNYA) */
+function loadChats() { try { state.chats = JSON.parse(localStorage.getItem(LS_CHATS)) || []; } catch { state.chats = []; } }
+function saveChats() { localStorage.setItem(LS_CHATS, JSON.stringify(state.chats)); }
+function getActiveChat() { return state.chats.find(c => c.id === state.activeId); }
+
+function renderChatList() {
+  if (!state.chats.length) { els.chatList.innerHTML = '<div style="color:#666;text-align:center;padding:20px;font-size:13px;">Belum ada riwayat chat.</div>'; return; }
+  els.chatList.innerHTML = state.chats.map(c => `
+    <div class="chat-item ${c.id === state.activeId ? 'active' : ''}" onclick="selectChat('${c.id}')">
+      <div class="chat-item-title">${escapeHtml(c.title || 'Chat Baru')}</div>
+      <button class="del-btn" onclick="event.stopPropagation(); deleteChat('${c.id}')">🗑</button>
+    </div>
+  `).join('');
+}
+window.selectChat = (id) => { state.activeId = id; renderChatList(); renderMessages(); closeSidebar(); };
+window.deleteChat = (id) => {
+  if(!confirm('Hapus chat ini?')) return;
+  state.chats = state.chats.filter(c => c.id !== id);
+  if (state.activeId === id) state.activeId = state.chats[0]?.id || null;
+  saveChats(); renderChatList(); renderMessages();
+};
+function createNewChat() {
+  const chat = { id: uid(), title: 'Chat Baru', messages: [], updatedAt: Date.now() };
+  state.chats.unshift(chat); state.activeId = chat.id;
+  saveChats(); renderChatList(); renderMessages(); closeSidebar();
+}
+
+function renderMessages() {
+  const chat = getActiveChat();
+  if (!chat || !chat.messages.length) { els.welcome.style.display = 'flex'; els.messages.innerHTML = ''; return; }
+  els.welcome.style.display = 'none';
+  els.messages.innerHTML = chat.messages.map(m => {
+    if (m.role === 'user') return `<div class="msg user"><div class="bubble">${escapeHtml(m.text)}</div></div>`;
+    if (m.role === 'error') return `<div class="msg model error"><div class="bubble">⚠️ ${escapeHtml(m.text)}</div></div>`;
+    return `<div class="msg model"><div class="bubble">${escapeHtml(m.text)}</div></div>`;
+  }).join('');
+  els.chatArea.scrollTop = els.chatArea.scrollHeight;
+}
+
+/* API GEMINI (NON-STREAMING UNTUK VOICE AGAR LEBIH CEPAT) */
+async function callGeminiText(messages) {
+  const apiKey = localStorage.getItem(LS_API);
+  const model = localStorage.getItem(LS_MODEL) || 'gemini-flash-latest';
+  if (!apiKey) { openSettings(); throw new Error('API Key belum diatur.'); }
+
+  const contents = messages.map(m => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: m.text }] }));
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  
+  const response = await fetch(url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } })
+  });
+
+  if (!response.ok) throw new Error('Gagal menghubungi server.');
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Maaf, saya tidak bisa menjawab saat ini.";
+}
+
+/* =========================================
+   LOGIKA VOICE CALL (PANGGLAN SUARA)
+   ========================================= */
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
+let synth = window.speechSynthesis;
+
+if (SpeechRecognition) {
+  recognition = new SpeechRecognition();
+  recognition.lang = 'id-ID';
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  recognition.onstart = () => {
+    if (!callState.active) return;
+    callState.isListening = true;
+    els.voiceOrb.className = 'orb listening';
+    els.voiceStatus.textContent = 'Saya sedang mendengarkan...';
+    els.voiceSubtitle.textContent = '';
+  };
+
+  recognition.onresult = async (e) => {
+    const transcript = e.results[0][0].transcript;
+    els.voiceSubtitle.textContent = `"${transcript}"`;
+    els.voiceStatus.textContent = 'Sigan Ai sedang berpikir...';
+    els.voiceOrb.className = 'orb'; // Diam
+    
+    // Simpan ke chat
+    if (!state.activeId) createNewChat();
+    const chat = getActiveChat();
+    chat.messages.push({ role: 'user', text: transcript });
+    renderMessages();
+
+    try {
+      const reply = await callGeminiText(chat.messages);
+      chat.messages.push({ role: 'model', text: reply });
+      saveChats(); renderMessages();
+      speakText(reply);
+    } catch (err) {
+      els.voiceStatus.textContent = 'Terjadi kesalahan.';
+      setTimeout(() => { if(callState.active) startListening(); }, 2000);
+    }
+  };
+
+  recognition.onend = () => {
+    callState.isListening = false;
+    if (callState.active && !callState.isSpeaking && !callState.muted) {
+      // Jika berhenti mendengar tapi belum selesai bicara, restart
+      // (Kecuali jika sedang diproses AI atau sedang TTS)
+    }
+  };
+}
+
+function speakText(text) {
+  if (!callState.active) return;
+  synth.cancel(); // Hentikan suara sebelumnya
+  
+  // Bersihkan markdown agar rapi saat dibacakan
+  const cleanText = text.replace(/[*#_`~]/g, '').replace(/\[(.*?)\]\(.*?\)/g, '$1');
+  
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = 'id-ID';
+  utterance.rate = 1.0;
+  
+  utterance.onstart = () => {
+    callState.isSpeaking = true;
+    els.voiceOrb.className = 'orb speaking';
+    els.voiceStatus.textContent = 'Sigan Ai berbicara...';
+  };
+  
+  utterance.onend = () => {
+    callState.isSpeaking = false;
+    if (callState.active && !callState.muted) {
+      startListening();
+    } else {
+      els.voiceOrb.className = 'orb';
+      els.voiceStatus.textContent = 'Mikrofon Dibisukan';
+    }
+  };
+
+  synth.speak(utterance);
+}
+
+function startListening() {
+  if (!callState.active || callState.muted) return;
+  try { recognition.start(); } catch (e) {} // Abaikan error jika sudah berjalan
+}
+
+function startCall() {
+  if (!SpeechRecognition || !synth) {
+    showToast('Browser tidak mendukung fitur panggilan suara.', 'error'); return;
+  }
+
+  els.voiceOverlay.classList.add('active');
+  callState.active = true;
+  callState.seconds = 0;
+  callState.muted = false;
+  els.muteCallBtn.classList.remove('danger');
+  els.voiceStatus.textContent = 'Menyambungkan...';
+  els.voiceSubtitle.textContent = '';
+  els.voiceOrb.className = 'orb';
+  
+  // Timer
+  clearInterval(callState.timer);
+  callState.timer = setInterval(() => {
+    callState.seconds++;
+    const m = String(Math.floor(callState.seconds / 60)).padStart(2, '0');
+    const s = String(callState.seconds % 60).padStart(2, '0');
+    els.callTimer.textContent = `${m}:${s}`;
+  }, 1000);
+
+  // Sapaan Awal
+  const greeting = "Halo Usman! Ada yang bisa saya bantu hari ini?";
+  speakText(greeting);
+}
+
+function endCall() {
+  callState.active = false;
+  clearInterval(callState.timer);
+  synth.cancel();
+  if(recognition) recognition.abort();
+  
+  els.voiceOverlay.classList.remove('active');
+  els.callTimer.textContent = '00:00';
+}
+
+els.callBtnHeader.onclick = startCall;
+els.endCallBtn.onclick = endCall;
+els.muteCallBtn.onclick = () => {
+  callState.muted = !callState.muted;
+  if (callState.muted) {
+    els.muteCallBtn.classList.add('danger');
+    recognition.abort();
+    synth.cancel();
+    els.voiceOrb.className = 'orb';
+    els.voiceStatus.textContent = 'Mikrofon Dibisukan';
+  } else {
+    els.muteCallBtn.classList.remove('danger');
+    if(!callState.isSpeaking) startListening();
+  }
+};
+
+/* EVENT LISTENERS CHAT TEXT (SEDERHANA) */
+els.sendBtn.onclick = async () => {
+  const text = els.userInput.value.trim();
+  if (!text) return;
+  if (!state.activeId) createNewChat();
+  const chat = getActiveChat();
+  chat.messages.push({ role: 'user', text });
+  els.userInput.value = ''; renderMessages();
+  
+  try {
+    const reply = await callGeminiText(chat.messages);
+    chat.messages.push({ role: 'model', text: reply });
+    saveChats(); renderMessages();
+  } catch(e) { showToast('Gagal terhubung', 'error'); }
+};
+
+els.userInput.oninput = () => { els.sendBtn.disabled = !els.userInput.value.trim(); };
+els.newChatBtnHeader.onclick = createNewChat;
+els.menuBtn.onclick = () => { els.sidebar.classList.add('open'); els.sidebarOverlay.classList.add('show'); };
+window.closeSidebar = () => { els.sidebar.classList.remove('open'); els.sidebarOverlay.classList.remove('show'); };
+els.closeSidebar.onclick = closeSidebar; els.sidebarOverlay.onclick = closeSidebar;
+els.chips.onclick = (e) => {
+  const chip = e.target.closest('.chip');
+  if (chip && chip.dataset.prompt) { els.userInput.value = chip.dataset.prompt; els.sendBtn.disabled = false; els.userInput.focus(); }
+};
+
+/* SETTINGS */
+window.openSettings = () => {
+  els.apiKeyInput.value = localStorage.getItem(LS_API) || '';
+  els.modelSelect.value = localStorage.getItem(LS_MODEL) || 'gemini-flash-latest';
+  els.settingsModal.classList.add('show');
+};
+els.settingsBtn.onclick = openSettings;
+els.closeSettings.onclick = () => els.settingsModal.classList.remove('show');
+els.saveSettings.onclick = () => {
+  localStorage.setItem(LS_API, els.apiKeyInput.value.trim());
+  localStorage.setItem(LS_MODEL, els.modelSelect.value);
+  els.settingsModal.classList.remove('show');
+  showToast('Pengaturan disimpan', 'success');
+};
+
+/* INIT */
+loadChats();
+if (state.chats.length > 0) { state.activeId = state.chats[0].id; renderMessages(); }
+renderChatList();
+</script>
+</body>
+</html>
