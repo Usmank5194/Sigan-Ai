@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Sigan Ai - Document Generator</title>
-<!-- LIBRARY UNTUK DOWNLOAD & UPLOAD FILE -->
+<!-- LIBRARY -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html-docx-js/dist/html-docx.js"></script>
@@ -16,42 +16,26 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
 <style>
-:root {
-  --bg: #0f0f0f;
-  --surface: #1e1e1e;
-  --surface-hover: #2d2d2d;
-  --text: #f3f4f6;
-  --text-muted: #9ca3af;
-  --primary: #3b82f6;
-  --border: #333333;
-  --danger: #ef4444;
-}
+/* CSS SAMA, TIDAK ADA YANG BERUBAH */
+:root { --bg: #0f0f0f; --surface: #1e1e1e; --surface-hover: #2d2d2d; --text: #f3f4f6; --text-muted: #9ca3af; --primary: #3b82f6; --border: #333333; --danger: #ef4444; }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 input, textarea { font-family: inherit; outline: none; border: none; background: none; color: inherit; }
-
 .app { display: flex; height: 100vh; height: 100dvh; position: relative; flex-direction: column; }
-
-/* HEADER */
 .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); background: var(--bg); z-index: 10; }
 .header-title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
 .icon-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: var(--text-muted); }
 .icon-btn:hover { background: var(--surface); color: var(--text); }
 .icon-btn svg { width: 22px; height: 22px; }
-
-/* CHAT AREA */
 .chat-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; scroll-behavior: smooth; }
 .chat-area::-webkit-scrollbar { width: 4px; }
 .chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
 .welcome { margin: auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .welcome-logo { font-size: 48px; margin-bottom: 8px; }
 .welcome h2 { font-size: 24px; font-weight: 500; color: var(--text); }
 .welcome p { font-size: 14px; color: var(--text-muted); max-width: 280px; line-height: 1.5; }
-
-/* MESSAGES */
 .messages { width: 100%; max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; padding-bottom: 20px; }
 .messages:empty { display: none; }
 .msg { display: flex; flex-direction: column; max-width: 100%; animation: fadeUp 0.3s ease; }
@@ -61,13 +45,9 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 .msg.model { align-items: flex-start; }
 .msg.model .bubble { width: 100%; font-size: 15px; line-height: 1.6; word-wrap: break-word; color: #e5e5e5; position: relative; }
 .msg.error .bubble { color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 12px; font-size: 14px; }
-
-/* ATTACHMENT PREVIEW */
 .attachment-preview { display: flex; align-items: center; gap: 8px; background: var(--surface-hover); padding: 8px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; width: fit-content; }
 .attachment-preview img { max-width: 100px; border-radius: 6px; }
 .attachment-preview .file-icon { font-size: 20px; }
-
-/* MARKDOWN STYLES */
 .bubble h1, .bubble h2, .bubble h3 { margin: 16px 0 8px; font-weight: 600; color: #fff; }
 .bubble p { margin-bottom: 12px; }
 .bubble ul, .bubble ol { margin-bottom: 12px; padding-left: 24px; }
@@ -83,20 +63,14 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); color: #ccc; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; transition: 0.2s; }
 .copy-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
 .copy-btn.copied { background: #10b981; color: #fff; }
-
-/* ACTION BUTTONS (DOWNLOAD) */
 .action-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
 .dl-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; font-weight: 500; transition: 0.2s; }
 .dl-btn:hover { background: var(--surface-hover); border-color: #555; }
-
-/* LOADING DOTS */
 .typing { display: flex; gap: 4px; padding: 8px 0; }
 .typing span { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: blink 1.4s infinite both; }
 .typing span:nth-child(2) { animation-delay: 0.2s; }
 .typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
-
-/* INPUT AREA & CHIPS */
 .input-wrapper { padding: 10px 20px 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 70%, transparent); display: flex; flex-direction: column; align-items: center; }
 .chips-container { width: 100%; max-width: 800px; display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 4px; scrollbar-width: none; }
 .chips-container::-webkit-scrollbar { display: none; }
@@ -111,8 +85,6 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 .send-btn { background: #fff; color: #000; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; margin-left: 4px; transition: 0.2s; }
 .send-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
 .send-btn svg { width: 18px; height: 18px; margin-left: 2px; }
-
-/* VOICE CALL UI */
 .voice-overlay { position: fixed; inset: 0; background: #000; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 20px; padding-top: max(40px, env(safe-area-inset-top)); padding-bottom: max(40px, env(safe-area-inset-bottom)); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .voice-overlay.active { opacity: 1; pointer-events: auto; }
 .voice-top { text-align: center; margin-top: 20px; }
@@ -129,11 +101,7 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 .voice-btn { width: 65px; height: 65px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #1a1a1a; color: #fff; transition: 0.2s; }
 .voice-btn.danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
 .voice-btn svg { width: 28px; height: 28px; }
-
-/* HIDDEN INPUTS */
 #imageUpload, #fileUpload { display: none; }
-
-/* SIDEBAR & MODALS */
 .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: var(--surface); z-index: 100; transform: translateX(-100%); transition: transform 0.3s; display: flex; flex-direction: column; }
 .sidebar.open { transform: translateX(0); }
 .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 90; display: none; }
@@ -192,15 +160,11 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
     </div>
 
     <div class="input-box">
-      <!-- Tombol Upload File -->
       <button class="action-btn" id="fileBtn" title="Upload Dokumen (PDF, Word)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
       </button>
-
       <textarea id="userInput" placeholder="Ketik pesan..." rows="1"></textarea>
-      
       <div class="input-actions">
-        <!-- Tombol Kamera Live -->
         <button class="action-btn" id="cameraBtn" title="Buka Kamera">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
         </button>
@@ -210,7 +174,6 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
   </div>
 </div>
 
-<!-- HIDDEN INPUTS -->
 <input type="file" id="imageUpload" accept="image/*" capture="environment">
 <input type="file" id="fileUpload" accept=".pdf,.doc,.docx,.txt,.csv">
 
@@ -262,10 +225,9 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
 <script>
 /* ============================================================
-   SIGAN AI v16.0 - File Upload & Live Camera
+   SIGAN AI v16.2 - Anti TPM Limit (Text Chunking)
    ============================================================ */
 
-// Setup PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
 const LS_CHATS = 'sigan_chats_v4';
@@ -275,36 +237,21 @@ const LS_GEMINI_MODEL = 'sigan_gemini_model';
 const LS_GROQ_KEY = 'sigan_groq_key';
 const LS_GROQ_MODEL = 'sigan_groq_model';
 
-const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa.
-Karakter: Ramah, cerdas, dan profesional.
-## ATURAN FORMAT FILE:
-1. LAPORAN (PDF/Word): Gunakan format Markdown yang rapi.
-2. DATA/TABEL (Excel): WAJIB gunakan format tabel Markdown (menggunakan pipa |).
-3. PPT/Presentasi: Pisahkan setiap slide dengan tiga garis minus (---).`;
+const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa. Karakter: Ramah, cerdas, dan profesional.`;
 
 const state = { chats: [], activeId: null, sending: false, imageBase64: null, fileText: null, fileName: null, provider: 'groq' };
 let callState = { active: false, timer: null, seconds: 0, isSpeaking: false, isProcessing: false };
 
 const els = {};
-['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar',
- 'sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings',
- 'providerSelect','apiKeyLabel','apiKeyInput','modelLabel','modelSelect','saveSettings',
- 'toast','chips','imageUpload','cameraBtn','fileBtn','fileUpload', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'
-].forEach(id => els[id] = document.getElementById(id));
+['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar','sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings','providerSelect','apiKeyLabel','apiKeyInput','modelLabel','modelSelect','saveSettings','toast','chips','imageUpload','cameraBtn','fileBtn','fileUpload', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'].forEach(id => els[id] = document.getElementById(id));
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-/* --- MARKDOWN PARSER --- */
+/* --- MARKDOWN --- */
 function renderMarkdown(text) {
   let s = escapeHtml(text);
-  const codeBlocks = [];
-  s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => {
-    const i = codeBlocks.length;
-    codeBlocks.push(`<div class="code-container"><button class="copy-btn" onclick="copyCode(this)">Salin</button><pre><code>${code.replace(/\n$/, '')}</code></pre></div>`);
-    return `\u0000CB${i}\u0000`;
-  });
-  
+  s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => `<div class="code-container"><button class="copy-btn" onclick="copyCode(this)">Salin</button><pre><code>${code.replace(/\n$/, '')}</code></pre></div>`);
   s = s.replace(/((?:\|.*\|(?:\r?\n|$))+)/g, (match) => {
     const lines = match.trim().split('\n');
     if (lines.length < 2 || !lines[0].includes('-')) return match;
@@ -317,15 +264,10 @@ function renderMarkdown(text) {
       table += '</tr>';
       isHeader = false;
     }
-    table += '</table>';
-    return table;
+    table += '</table>'; return table;
   });
-
-  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
   s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  
   const lines = s.split('\n'); let inList = false, out = [];
   for (const line of lines) {
     const m = line.match(/^\s*[-*]\s+(.+)$/);
@@ -334,42 +276,26 @@ function renderMarkdown(text) {
   }
   if (inList) out.push('</ul>');
   s = out.join('\n').replace(/\n/g, '<br>').replace(/<br>\s*<ul>/g, '<ul>').replace(/<\/ul>\s*<br>/g, '</ul>').replace(/<br>\s*<li>/g, '<li>').replace(/<\/li>\s*<br>/g, '</li>');
-  return s.replace(/\u0000CB(\d+)\u0000/g, (m, i) => codeBlocks[+i]);
+  return s;
 }
-
-window.copyCode = function(btn) {
-  const code = btn.nextElementSibling.innerText;
-  const success = () => { btn.textContent = 'Tersalin!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'Salin'; btn.classList.remove('copied'); }, 2000); };
-  if (navigator.clipboard) navigator.clipboard.writeText(code).then(success);
-};
+window.copyCode = function(btn) { navigator.clipboard.writeText(btn.nextElementSibling.innerText); btn.textContent = 'Tersalin!'; setTimeout(() => btn.textContent = 'Salin', 2000); };
 function showToast(msg, type = '') { els.toast.textContent = msg; els.toast.className = `toast show ${type}`; setTimeout(() => els.toast.classList.remove('show'), 3000); }
 
 /* --- CHAT CORE --- */
 function loadChats() { try { state.chats = JSON.parse(localStorage.getItem(LS_CHATS)) || []; } catch { state.chats = []; } }
 function saveChats() { localStorage.setItem(LS_CHATS, JSON.stringify(state.chats)); }
 function getActiveChat() { return state.chats.find(c => c.id === state.activeId); }
-
 function renderChatList() {
   if (!state.chats.length) { els.chatList.innerHTML = '<div style="color:#666;text-align:center;padding:20px;font-size:13px;">Belum ada chat.</div>'; return; }
   els.chatList.innerHTML = state.chats.map(c => `
     <div class="chat-item ${c.id === state.activeId ? 'active' : ''}" onclick="selectChat('${c.id}')">
       <div class="chat-item-title">${escapeHtml(c.title || 'Chat Baru')}</div>
       <button class="del-btn" onclick="event.stopPropagation(); deleteChat('${c.id}')">🗑</button>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 window.selectChat = (id) => { state.activeId = id; renderChatList(); renderMessages(); closeSidebar(); };
-window.deleteChat = (id) => {
-  if(!confirm('Hapus chat ini?')) return;
-  state.chats = state.chats.filter(c => c.id !== id);
-  if (state.activeId === id) state.activeId = state.chats[0]?.id || null;
-  saveChats(); renderChatList(); renderMessages();
-};
-function createNewChat() {
-  const chat = { id: uid(), title: 'Chat Baru', messages: [], updatedAt: Date.now() };
-  state.chats.unshift(chat); state.activeId = chat.id;
-  saveChats(); renderChatList(); renderMessages(); closeSidebar();
-}
+window.deleteChat = (id) => { if(!confirm('Hapus chat ini?')) return; state.chats = state.chats.filter(c => c.id !== id); if (state.activeId === id) state.activeId = state.chats[0]?.id || null; saveChats(); renderChatList(); renderMessages(); };
+function createNewChat() { const chat = { id: uid(), title: 'Chat Baru', messages: [], updatedAt: Date.now() }; state.chats.unshift(chat); state.activeId = chat.id; saveChats(); renderChatList(); renderMessages(); closeSidebar(); }
 
 function renderMessages() {
   const chat = getActiveChat();
@@ -380,208 +306,123 @@ function renderMessages() {
       let attachHtml = '';
       if (m.image) attachHtml += `<img src="${m.image}" style="max-width:200px;border-radius:12px;margin-bottom:8px;">`;
       if (m.fileName) attachHtml += `<div class="attachment-preview">📎 ${escapeHtml(m.fileName)}</div>`;
-      return `<div class="msg user">${attachHtml}<div class="bubble">${escapeHtml(m.text)}</div></div>`;
+      return `<div class="msg user">${attachHtml}<div class="bubble">${escapeHtml(m.displayText || m.text)}</div></div>`;
     }
     if (m.role === 'error') return `<div class="msg model error"><div class="bubble">⚠️ ${escapeHtml(m.text)}</div></div>`;
-    
-    const toolbar = `
+    return `<div class="msg model"><div class="bubble">${renderMarkdown(m.text)}
       <div class="action-toolbar">
         <button class="dl-btn" onclick="downloadPDF(this)">📄 PDF</button>
         <button class="dl-btn" onclick="downloadWord(this)">📝 Word</button>
         <button class="dl-btn" onclick="downloadExcel(this)">📊 Excel</button>
         <button class="dl-btn" onclick="downloadPPT('${encodeURIComponent(m.text)}')">📽️ PPT</button>
       </div>
-    `;
-    return `<div class="msg model"><div class="bubble">${renderMarkdown(m.text)}${toolbar}</div></div>`;
+    </div></div>`;
   }).join('');
   els.chatArea.scrollTop = els.chatArea.scrollHeight;
 }
 
-/* --- FUNGSI DOWNLOAD FILE --- */
-window.downloadPDF = function(btn) {
-  const bubble = btn.closest('.bubble');
-  btn.closest('.action-toolbar').style.display = 'none';
-  const opt = { margin: 10, filename: 'SiganAI_Laporan.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-  const clone = bubble.cloneNode(true);
-  clone.style.color = '#000'; clone.style.background = '#fff';
-  html2pdf().set(opt).from(clone).save().then(() => { btn.closest('.action-toolbar').style.display = 'flex'; });
-};
-window.downloadWord = function(btn) {
-  const bubble = btn.closest('.bubble');
-  const clone = bubble.cloneNode(true); clone.querySelector('.action-toolbar').remove(); clone.style.color = '#000';
-  const htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>${clone.innerHTML}</body></html>`;
-  const blob = htmlDocx.asBlob(htmlContent);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'SiganAI_Dokumen.docx'; a.click(); URL.revokeObjectURL(url);
-};
-window.downloadExcel = function(btn) {
-  const bubble = btn.closest('.bubble');
-  const table = bubble.querySelector('table');
-  if (!table) { showToast('Tidak ada tabel di pesan ini.', 'error'); return; }
-  const wb = XLSX.utils.table_to_book(table, {sheet: "Data"});
-  XLSX.writeFile(wb, 'SiganAI_Data.xlsx');
-};
-window.downloadPPT = function(encodedText) {
-  const text = decodeURIComponent(encodedText);
-  let pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_16x9';
-  const slides = text.split(/\n\s*---\s*\n/);
-  let validSlides = 0;
-  slides.forEach(slideText => {
-    let lines = slideText.trim().split('\n').filter(l => l.trim());
-    if (lines.length === 0) return;
-    let slide = pptx.addSlide(); let title = ""; let bullets = [];
-    lines.forEach(line => {
-      if (line.startsWith('#')) title = line.replace(/#/g, '').trim();
-      else if (line.startsWith('-') || line.startsWith('*')) bullets.push({ text: line.replace(/^[-*]\s*/, '').trim(), options: { bullet: true } });
-      else { if (!title) title = line.trim(); else bullets.push({ text: line.trim(), options: { bullet: false } }); }
-    });
-    if (!title) title = `Slide ${validSlides + 1}`;
-    slide.background = { color: "0F0F0F" };
-    slide.addText(title, { x: 0.5, y: 0.5, w: '90%', h: 1, fontSize: 28, bold: true, color: "3b82f6" });
-    if (bullets.length > 0) slide.addText(bullets, { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: "E5E5E5" });
-    validSlides++;
-  });
-  if (validSlides === 0) { showToast('Format PPT tidak ditemukan.', 'error'); return; }
-  pptx.writeFile({ fileName: "SiganAI_Presentasi.pptx" });
-};
+/* --- DOWNLOAD --- */
+window.downloadPDF = function(btn) { const bubble = btn.closest('.bubble'); btn.closest('.action-toolbar').style.display = 'none'; const opt = { margin: 10, filename: 'SiganAI.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } }; const clone = bubble.cloneNode(true); clone.style.color = '#000'; clone.style.background = '#fff'; html2pdf().set(opt).from(clone).save().then(() => { btn.closest('.action-toolbar').style.display = 'flex'; }); };
+window.downloadWord = function(btn) { const bubble = btn.closest('.bubble'); const clone = bubble.cloneNode(true); clone.querySelector('.action-toolbar').remove(); const blob = htmlDocx.asBlob(`<html><body>${clone.innerHTML}</body></html>`); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'SiganAI.docx'; a.click(); };
+window.downloadExcel = function(btn) { const table = btn.closest('.bubble').querySelector('table'); if (!table) { showToast('Tidak ada tabel.', 'error'); return; } const wb = XLSX.utils.table_to_book(table); XLSX.writeFile(wb, 'SiganAI.xlsx'); };
+window.downloadPPT = function(encodedText) { const text = decodeURIComponent(encodedText); let pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_16x9'; const slides = text.split(/\n\s*---\s*\n/); slides.forEach((slideText) => { let lines = slideText.trim().split('\n').filter(l => l.trim()); if (lines.length === 0) return; let slide = pptx.addSlide(); let title = ""; let bullets = []; lines.forEach(line => { if (line.startsWith('#')) title = line.replace(/#/g, '').trim(); else if (line.startsWith('-') || line.startsWith('*')) bullets.push({ text: line.replace(/^[-*]\s*/, '').trim(), options: { bullet: true } }); else { if (!title) title = line.trim(); else bullets.push({ text: line.trim(), options: { bullet: false } }); } }); slide.background = { color: "0F0F0F" }; slide.addText(title || "Slide", { x: 0.5, y: 0.5, w: '90%', h: 1, fontSize: 28, bold: true, color: "3b82f6" }); if (bullets.length > 0) slide.addText(bullets, { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: "E5E5E5" }); }); pptx.writeFile({ fileName: "SiganAI.pptx" }); };
 
-/* --- SETTINGS & MODELS --- */
+/* --- SETTINGS --- */
 const GEMINI_MODELS = [ { id: 'gemini-flash-latest', name: 'Gemini Flash Latest' } ];
 const GROQ_MODELS = [ { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B' }, { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B' } ];
-
-function updateSettingsUI() {
-  const p = els.providerSelect.value;
-  els.apiKeyInput.value = p === 'gemini' ? (localStorage.getItem(LS_GEMINI_KEY)||'') : (localStorage.getItem(LS_GROQ_KEY)||'');
-  if (p === 'gemini') {
-    els.apiKeyLabel.textContent = 'API Key Gemini';
-    els.modelSelect.innerHTML = GEMINI_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-    els.modelSelect.value = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
-  } else {
-    els.apiKeyLabel.textContent = 'API Key Groq';
-    els.modelSelect.innerHTML = GROQ_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-    els.modelSelect.value = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
-  }
-}
+function updateSettingsUI() { const p = els.providerSelect.value; els.apiKeyInput.value = p === 'gemini' ? (localStorage.getItem(LS_GEMINI_KEY)||'') : (localStorage.getItem(LS_GROQ_KEY)||''); if (p === 'gemini') { els.apiKeyLabel.textContent = 'API Key Gemini'; els.modelSelect.innerHTML = GEMINI_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join(''); els.modelSelect.value = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest'; } else { els.apiKeyLabel.textContent = 'API Key Groq'; els.modelSelect.innerHTML = GROQ_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join(''); els.modelSelect.value = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b'; } }
 els.providerSelect.onchange = updateSettingsUI;
 window.openSettings = () => { els.providerSelect.value = state.provider; updateSettingsUI(); els.settingsModal.classList.add('show'); };
-els.saveSettings.onclick = () => {
-  const p = els.providerSelect.value; const key = els.apiKeyInput.value.trim(); const model = els.modelSelect.value;
-  if (!key) { showToast('API Key tidak boleh kosong', 'error'); return; }
-  localStorage.setItem(LS_PROVIDER, p);
-  if (p === 'gemini') { localStorage.setItem(LS_GEMINI_KEY, key); localStorage.setItem(LS_GEMINI_MODEL, model); }
-  else { localStorage.setItem(LS_GROQ_KEY, key); localStorage.setItem(LS_GROQ_MODEL, model); }
-  state.provider = p; els.settingsModal.classList.remove('show'); showToast('Disimpan', 'success');
-};
+els.saveSettings.onclick = () => { const p = els.providerSelect.value; const key = els.apiKeyInput.value.trim(); if (!key) { showToast('API Key kosong', 'error'); return; } localStorage.setItem(LS_PROVIDER, p); if (p === 'gemini') { localStorage.setItem(LS_GEMINI_KEY, key); localStorage.setItem(LS_GEMINI_MODEL, els.modelSelect.value); } else { localStorage.setItem(LS_GROQ_KEY, key); localStorage.setItem(LS_GROQ_MODEL, els.modelSelect.value); } state.provider = p; els.settingsModal.classList.remove('show'); showToast('Disimpan', 'success'); };
 
-/* --- API CALLS --- */
-async function fetchWithRetry(url, options, maxRetries = 2) {
-  let attempt = 0;
-  while (attempt < maxRetries) {
-    try {
-      const response = await fetch(url, options);
-      if (response.status === 429) { attempt++; if (attempt >= maxRetries) throw new Error('Kuota habis.'); await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000)); continue; }
-      if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.error?.message || `HTTP ${response.status}`); }
-      return response;
-    } catch (error) { if (attempt >= maxRetries - 1) throw error; attempt++; await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000)); }
+/* --- API FETCH --- */
+async function fetchWithRetry(url, options) {
+  for (let i=0; i<3; i++) {
+    const res = await fetch(url, options);
+    if (res.status === 429) { await new Promise(r => setTimeout(r, 2000)); continue; }
+    if (!res.ok) throw new Error('Gagal terhubung');
+    return res;
   }
+  throw new Error('Kuota habis');
 }
-
 async function callGeminiStreaming(messages, onChunk) {
   const apiKey = localStorage.getItem(LS_GEMINI_KEY); const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
-  const contents = messages.map(m => {
-    const parts = [{ text: m.text }];
-    if (m.image) parts.push({ inlineData: { mimeType: "image/jpeg", data: m.image.split(',')[1] } });
-    return { role: m.role === 'model' ? 'model' : 'user', parts };
-  });
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-  const response = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } }) });
+  const contents = messages.map(m => { const parts = [{ text: m.text }]; if (m.image) parts.push({ inlineData: { mimeType: "image/jpeg", data: m.image.split(',')[1] } }); return { role: m.role === 'model' ? 'model' : 'user', parts }; });
+  const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } }) });
   const reader = response.body.getReader(); const decoder = new TextDecoder("utf-8"); let fullText = "";
-  while (true) {
-    const { done, value } = await reader.read(); if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    for (const line of chunk.split("\n")) {
-      if (line.startsWith("data: ")) {
-        const dataStr = line.slice(6); if (dataStr === "[DONE]") break;
-        try { const data = JSON.parse(dataStr); const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ""; if (text) { fullText += text; onChunk(fullText); } } catch (e) {}
-      }
-    }
-  }
+  while (true) { const { done, value } = await reader.read(); if (done) break; const chunk = decoder.decode(value, { stream: true }); for (const line of chunk.split("\n")) { if (line.startsWith("data: ")) { const dataStr = line.slice(6); if (dataStr === "[DONE]") break; try { const data = JSON.parse(dataStr); const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ""; if (text) { fullText += text; onChunk(fullText); } } catch (e) {} } } }
   return fullText;
 }
-
 async function callGroqStreaming(messages, onChunk) {
   const apiKey = localStorage.getItem(LS_GROQ_KEY); const model = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
   const chatMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))];
-  const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, messages: chatMessages, stream: true })
-  });
+  const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model, messages: chatMessages, stream: true }) });
   const reader = response.body.getReader(); const decoder = new TextDecoder("utf-8"); let fullText = "";
-  while (true) {
-    const { done, value } = await reader.read(); if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    for (const line of chunk.split("\n")) {
-      if (line.startsWith("data: ")) {
-        const dataStr = line.slice(6); if (dataStr === "[DONE]") break;
-        try { const data = JSON.parse(dataStr); const text = data.choices?.[0]?.delta?.content || ""; if (text) { fullText += text; onChunk(fullText); } } catch (e) {}
-      }
-    }
-  }
+  while (true) { const { done, value } = await reader.read(); if (done) break; const chunk = decoder.decode(value, { stream: true }); for (const line of chunk.split("\n")) { if (line.startsWith("data: ")) { const dataStr = line.slice(6); if (dataStr === "[DONE]") break; try { const data = JSON.parse(dataStr); const text = data.choices?.[0]?.delta?.content || ""; if (text) { fullText += text; onChunk(fullText); } } catch (e) {} } } }
   return fullText;
 }
-
-async function callAIStreaming(messages, onChunk) {
-  if (state.provider === 'gemini') return callGeminiStreaming(messages, onChunk);
-  return callGroqStreaming(messages, onChunk);
-}
-
-/* --- VOICE CALL API --- */
+async function callAIStreaming(messages, onChunk) { return state.provider === 'gemini' ? callGeminiStreaming(messages, onChunk) : callGroqStreaming(messages, onChunk); }
 async function callAITextVoice(userText) {
   if (state.provider === 'gemini') {
     const apiKey = localStorage.getItem(LS_GEMINI_KEY); const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const response = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: userText }] }], systemInstruction: { parts: [{ text: "Jawab SANGKAT SINGKAT maksimal 2 kalimat." }] }, generationConfig: { maxOutputTokens: 100 } }) });
-    const data = await response.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Oke.";
+    const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: userText }] }], systemInstruction: { parts: [{ text: "Jawab maksimal 2 kalimat." }] }, generationConfig: { maxOutputTokens: 100 } }) });
+    const data = await response.json(); return data.candidates?.[0]?.content?.parts?.[0]?.text || "Oke.";
   } else {
     const apiKey = localStorage.getItem(LS_GROQ_KEY); const model = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
-    const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model, messages: [{ role: 'system', content: "Jawab SANGKAT SINGKAT maksimal 2 kalimat." }, { role: 'user', content: userText }], max_tokens: 100 }) });
-    const data = await response.json();
-    return data.choices?.[0]?.message?.content || "Oke.";
+    const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model, messages: [{ role: 'system', content: "Jawab maksimal 2 kalimat." }, { role: 'user', content: userText }], max_tokens: 100 }) });
+    const data = await response.json(); return data.choices?.[0]?.message?.content || "Oke.";
   }
 }
 
-/* --- SEND MESSAGE --- */
+/* --- FUNGSI CHUNKING (PEMOTONG TEKS) --- */
+function chunkText(text, maxLength = 4000) {
+  const chunks = [];
+  let currentChunk = "";
+  const sentences = text.split(/(?<=[.?!])\s+/);
+  for (const sentence of sentences) {
+    if ((currentChunk + sentence).length > maxLength) {
+      if (currentChunk) chunks.push(currentChunk);
+      currentChunk = sentence;
+    } else {
+      currentChunk += (currentChunk ? " " : "") + sentence;
+    }
+  }
+  if (currentChunk) chunks.push(currentChunk);
+  return chunks;
+}
+
+/* --- SEND MESSAGE (DENGAN CHUNKING) --- */
 async function sendMessage() {
   const text = els.userInput.value.trim();
   if ((!text && !state.imageBase64 && !state.fileText) || state.sending) return;
-
   if (!state.activeId) createNewChat();
   const chat = getActiveChat();
   
   let finalPrompt = text;
+  let isChunked = false;
+
   if (state.fileText) {
-    finalPrompt += `\n\n--- ISI DOKUMEN (${state.fileName}) ---\n${state.fileText}\n-----------------------------------`;
+    const chunks = chunkText(state.fileText, 4000);
+    if (chunks.length > 1) {
+      finalPrompt += `\n\n--- ISI DOKUMEN (${state.fileName}) ---\n[Dokumen Terlalu Panjang. Merangkum Bagian 1 dari ${chunks.length}...]\n${chunks[0]}\n-----------------------------------`;
+      isChunked = true;
+      state.fileText = chunks.slice(1).join(" "); // Simpan sisa untuk dikirim nanti
+    } else {
+      finalPrompt += `\n\n--- ISI DOKUMEN (${state.fileName}) ---\n${state.fileText}\n-----------------------------------`;
+      state.fileText = null;
+      state.fileName = null;
+    }
   }
 
-  chat.messages.push({ 
-    role: 'user', 
-    text: finalPrompt, 
-    image: state.imageBase64, 
-    fileName: state.fileName,
-    displayText: text // Teks asli untuk tampilan chat
-  });
-  
+  chat.messages.push({ role: 'user', text: finalPrompt, image: state.imageBase64, fileName: state.fileName || (isChunked ? "Potongan Dokumen" : null), displayText: text });
   if (chat.title === 'Chat Baru' && text) chat.title = text.slice(0, 30) + '...';
   saveChats();
-
-  els.userInput.value = ''; els.userInput.style.height = 'auto';
-  state.imageBase64 = null; state.fileText = null; state.fileName = null;
+  
+  els.userInput.value = ''; els.userInput.style.height = 'auto'; state.imageBase64 = null; 
   els.imageUpload.value = ''; els.fileUpload.value = '';
   els.sendBtn.disabled = true; renderMessages(); renderChatList();
-
-  state.sending = true; els.welcome.style.display = 'none';
   
+  state.sending = true; els.welcome.style.display = 'none';
   els.messages.innerHTML += `<div class="msg model" id="thinking-indicator"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
   els.chatArea.scrollTop = els.chatArea.scrollHeight;
 
@@ -589,31 +430,27 @@ async function sendMessage() {
     let fullReply = "";
     await callAIStreaming(chat.messages, (currentText) => {
       fullReply = currentText;
-      const indicator = document.getElementById('thinking-indicator');
-      if (indicator) indicator.remove();
+      const indicator = document.getElementById('thinking-indicator'); if (indicator) indicator.remove();
       let replyBubble = document.getElementById('streaming-bubble');
-      if (!replyBubble) {
-        els.messages.innerHTML += `<div class="msg model" id="streaming-bubble"><div class="bubble"></div></div>`;
-        replyBubble = document.getElementById('streaming-bubble');
-      }
-      replyBubble.querySelector('.bubble').innerHTML = renderMarkdown(currentText);
-      els.chatArea.scrollTop = els.chatArea.scrollHeight;
+      if (!replyBubble) { els.messages.innerHTML += `<div class="msg model" id="streaming-bubble"><div class="bubble"></div></div>`; replyBubble = document.getElementById('streaming-bubble'); }
+      replyBubble.querySelector('.bubble').innerHTML = renderMarkdown(currentText); els.chatArea.scrollTop = els.chatArea.scrollHeight;
     });
     chat.messages.push({ role: 'model', text: fullReply, ts: Date.now() });
+    
+    // Jika dokumen masih ada sisa potongan, tanya user
+    if (isChunked) {
+      showToast('Bagian 1 selesai. Ketik "Lanjut" untuk merangkum bagian berikutnya.', 'success');
+    }
   } catch (e) {
-    const indicator = document.getElementById('thinking-indicator');
-    if (indicator) indicator.remove();
+    const indicator = document.getElementById('thinking-indicator'); if (indicator) indicator.remove();
     chat.messages.push({ role: 'error', text: e.message, ts: Date.now() });
   } finally {
     state.sending = false; saveChats(); renderMessages(); updateSendBtn();
   }
 }
+function updateSendBtn() { els.sendBtn.disabled = (!els.userInput.value.trim() && !state.imageBase64 && !state.fileText) || state.sending; }
 
-function updateSendBtn() {
-  els.sendBtn.disabled = (!els.userInput.value.trim() && !state.imageBase64 && !state.fileText) || state.sending;
-}
-
-/* --- VOICE CALL LOGIC --- */
+/* --- VOICE & EVENTS (SAMA SEPERTI SEBELUMNYA) --- */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition; let synth = window.speechSynthesis;
 if (SpeechRecognition) {
@@ -635,89 +472,60 @@ function speakText(text) {
   synth.speak(utterance);
 }
 function startListening() { if (!callState.active || callState.isSpeaking || callState.isProcessing) return; try { recognition.start(); } catch (e) {} }
-function startCall() {
-  if (!SpeechRecognition || !synth) { showToast('Browser tidak mendukung suara.', 'error'); return; }
-  els.voiceOverlay.classList.add('active'); callState.active = true; callState.seconds = 0; callState.isSpeaking = false; callState.isProcessing = false;
-  els.voiceStatus.textContent = 'Menyambungkan...'; els.voiceOrb.className = 'orb';
-  clearInterval(callState.timer);
-  callState.timer = setInterval(() => { callState.seconds++; const m = String(Math.floor(callState.seconds / 60)).padStart(2, '0'); const s = String(callState.seconds % 60).padStart(2, '0'); els.callTimer.textContent = `${m}:${s}`; }, 1000);
-  setTimeout(() => { speakText("Halo, ada yang bisa saya bantu?"); }, 500);
-}
+function startCall() { if (!SpeechRecognition || !synth) { showToast('Browser tidak mendukung suara.', 'error'); return; } els.voiceOverlay.classList.add('active'); callState.active = true; callState.seconds = 0; callState.isSpeaking = false; callState.isProcessing = false; els.voiceStatus.textContent = 'Menyambungkan...'; els.voiceOrb.className = 'orb'; clearInterval(callState.timer); callState.timer = setInterval(() => { callState.seconds++; const m = String(Math.floor(callState.seconds / 60)).padStart(2, '0'); const s = String(callState.seconds % 60).padStart(2, '0'); els.callTimer.textContent = `${m}:${s}`; }, 1000); setTimeout(() => { speakText("Halo, ada yang bisa saya bantu?"); }, 500); }
 function endCall() { callState.active = false; clearInterval(callState.timer); synth.cancel(); if(recognition) recognition.abort(); els.voiceOverlay.classList.remove('active'); els.callTimer.textContent = '00:00'; }
 
-/* --- EVENT LISTENERS --- */
 els.sendBtn.onclick = sendMessage;
 els.userInput.oninput = () => { els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px'; updateSendBtn(); };
 els.userInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
-
-els.callBtnHeader.onclick = startCall;
-els.endCallBtn.onclick = endCall;
-els.newChatBtnHeader.onclick = createNewChat;
+els.callBtnHeader.onclick = startCall; els.endCallBtn.onclick = endCall; els.newChatBtnHeader.onclick = createNewChat;
 els.menuBtn.onclick = () => { els.sidebar.classList.add('open'); els.sidebarOverlay.classList.add('show'); };
 window.closeSidebar = () => { els.sidebar.classList.remove('open'); els.sidebarOverlay.classList.remove('show'); };
 els.closeSidebar.onclick = closeSidebar; els.sidebarOverlay.onclick = closeSidebar;
+els.chips.onclick = (e) => { const chip = e.target.closest('.chip'); if (!chip) return; els.userInput.value = chip.dataset.prompt; els.userInput.focus(); updateSendBtn(); els.userInput.setSelectionRange(els.userInput.value.length, els.userInput.value.length); els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px'; };
 
-els.chips.onclick = (e) => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  els.userInput.value = chip.dataset.prompt;
-  els.userInput.focus(); updateSendBtn();
-  els.userInput.setSelectionRange(els.userInput.value.length, els.userInput.value.length);
-  els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px';
-};
-
-/* --- KAMERA & UPLOAD FILE --- */
 els.cameraBtn.onclick = () => els.imageUpload.click();
-els.imageUpload.onchange = (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    state.imageBase64 = ev.target.result;
-    updateSendBtn();
-    showToast('Foto siap dikirim.', 'success');
-    if (!els.userInput.value) els.userInput.value = "Tolong analisis gambar ini.";
-  };
-  reader.readAsDataURL(file);
-};
+els.imageUpload.onchange = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { state.imageBase64 = ev.target.result; updateSendBtn(); showToast('Foto siap dikirim.', 'success'); if (!els.userInput.value) els.userInput.value = "Tolong analisis gambar ini."; }; reader.readAsDataURL(file); };
 
 els.fileBtn.onclick = () => els.fileUpload.click();
 els.fileUpload.onchange = async (e) => {
   const file = e.target.files[0]; if (!file) return;
   showToast('Membaca file...', '');
-  
   try {
+    let extractedText = "";
     if (file.name.endsWith('.pdf')) {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-      let text = "";
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        text += content.items.map(item => item.str).join(" ") + "\n";
+        extractedText += content.items.map(item => item.str).join(" ") + "\n";
       }
-      state.fileText = text;
     } else if (file.name.endsWith('.docx')) {
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
-      state.fileText = result.value;
+      extractedText = result.value;
     } else {
-      // Untuk txt atau csv
-      state.fileText = await file.text();
+      extractedText = await file.text();
     }
-    
+
+    if (!extractedText || extractedText.trim() === "") {
+      throw new Error("Dokumen ini tidak memiliki teks yang bisa dibaca (mungkin hasil scan/foto). Silakan ketik manual atau gunakan PDF dari Word.");
+    }
+
+    state.fileText = extractedText;
     state.fileName = file.name;
     updateSendBtn();
-    showToast('File berhasil dibaca. Ketik pesan atau langsung kirim.', 'success');
+    showToast('File berhasil dibaca.', 'success');
     if (!els.userInput.value) els.userInput.value = "Tolong rangkum dokumen ini.";
   } catch (err) {
-    showToast('Gagal membaca file: ' + err.message, 'error');
+    showToast(err.message, 'error');
+    els.fileUpload.value = '';
   }
 };
 
-els.settingsBtn.onclick = openSettings;
-els.closeSettings.onclick = () => els.settingsModal.classList.remove('show');
+els.settingsBtn.onclick = openSettings; els.closeSettings.onclick = () => els.settingsModal.classList.remove('show');
 
-/* --- INIT --- */
 state.provider = localStorage.getItem(LS_PROVIDER) || 'groq';
 loadChats();
 if (state.chats.length > 0) { state.activeId = state.chats[0].id; renderMessages(); }
