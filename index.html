@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Sigan Ai - Ultimate</title>
+<title>Sigan Ai - Multi AI</title>
 <style>
 :root {
   --bg: #0f0f0f;
@@ -162,7 +162,6 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
   </div>
 
   <div class="input-wrapper">
-    <!-- TOMBOL PINTASAN DIKEMBALIKAN -->
     <div class="chips-container" id="chips">
       <button class="chip" data-prompt="Bantu saya membuat kode program / website untuk: "><span>💻</span> Pengembangan Web</button>
       <button class="chip" data-prompt="Buatkan kerangka presentasi (PPT) mengenai topik: "><span>📊</span> PPT</button>
@@ -213,13 +212,20 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
   <div class="modal">
     <div class="modal-head"><h3>⚙️ Pengaturan</h3><button class="icon-btn" id="closeSettings">×</button></div>
     <div class="modal-body">
-      <div class="form-group"><label>API Key Gemini</label><input type="password" id="apiKeyInput"></div>
       <div class="form-group">
-        <label>Model AI (Pilih Flash untuk tercepat & kuota besar)</label>
-        <select id="modelSelect">
-          <option value="gemini-flash-latest">Gemini Flash Latest (Sangat Cepat)</option>
-          <option value="gemini-pro-latest">Gemini Pro Latest (Lebih Lambat)</option>
+        <label>Penyedia AI (Provider)</label>
+        <select id="providerSelect">
+          <option value="gemini">Google Gemini (Kuota Terbatas)</option>
+          <option value="groq">Groq - Llama 3 (Kuota Sangat Besar)</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label id="apiKeyLabel">API Key Gemini</label>
+        <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+      </div>
+      <div class="form-group">
+        <label id="modelLabel">Model AI</label>
+        <select id="modelSelect"></select>
       </div>
     </div>
     <div class="modal-foot"><button class="btn" id="saveSettings">Simpan</button></div>
@@ -229,30 +235,35 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
 <script>
 /* ============================================================
-   SIGAN AI v12.0 - Auto Retry (Exponential Backoff) & Stable
+   SIGAN AI v13.0 - Dual Provider (Gemini + Groq)
    ============================================================ */
 
 const LS_CHATS = 'sigan_chats_v4';
-const LS_API = 'sigan_api_key';
-const LS_MODEL = 'sigan_model';
+const LS_PROVIDER = 'sigan_provider';
+const LS_GEMINI_KEY = 'sigan_gemini_key';
+const LS_GEMINI_MODEL = 'sigan_gemini_model';
+const LS_GROQ_KEY = 'sigan_groq_key';
+const LS_GROQ_MODEL = 'sigan_groq_model';
 
 const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa yang dikembangkan oleh Usman Hasan.
 Karakter: Ramah, cerdas, jujur, dan modern. Selalu jawab dengan format Markdown yang rapi.`;
 
 const VOICE_PROMPT = `Anda Sigan Ai. Jawablah dengan SANGAT SINGKAT, maksimal 2 kalimat. Jangan gunakan markdown. Langsung jawab intinya saja seperti sedang menelepon.`;
 
-const state = { chats: [], activeId: null, sending: false, imageBase64: null };
+const state = { chats: [], activeId: null, sending: false, imageBase64: null, provider: 'gemini' };
 let callState = { active: false, timer: null, seconds: 0, isSpeaking: false, isProcessing: false };
 
 const els = {};
 ['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar',
- 'sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings','apiKeyInput',
- 'modelSelect','saveSettings','toast','chips','imageUpload','cameraBtn', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'
+ 'sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings',
+ 'providerSelect','apiKeyLabel','apiKeyInput','modelLabel','modelSelect','saveSettings',
+ 'toast','chips','imageUpload','cameraBtn', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'
 ].forEach(id => els[id] = document.getElementById(id));
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+/* --- MARKDOWN RENDERER --- */
 function renderMarkdown(text) {
   let s = escapeHtml(text);
   const codeBlocks = [];
@@ -275,17 +286,14 @@ function renderMarkdown(text) {
   s = out.join('\n').replace(/\n/g, '<br>').replace(/<br>\s*<ul>/g, '<ul>').replace(/<\/ul>\s*<br>/g, '</ul>').replace(/<br>\s*<li>/g, '<li>').replace(/<\/li>\s*<br>/g, '</li>');
   return s.replace(/\u0000CB(\d+)\u0000/g, (m, i) => codeBlocks[+i]);
 }
-
 window.copyCode = function(btn) {
   const code = btn.nextElementSibling.innerText;
   const success = () => { btn.textContent = 'Tersalin!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'Salin'; btn.classList.remove('copied'); }, 2000); };
   if (navigator.clipboard) navigator.clipboard.writeText(code).then(success);
-  else { const ta = document.createElement('textarea'); ta.value = code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); success(); }
 };
-
 function showToast(msg, type = '') { els.toast.textContent = msg; els.toast.className = `toast show ${type}`; setTimeout(() => els.toast.classList.remove('show'), 3000); }
 
-/* CHAT CORE */
+/* --- CHAT CORE --- */
 function loadChats() { try { state.chats = JSON.parse(localStorage.getItem(LS_CHATS)) || []; } catch { state.chats = []; } }
 function saveChats() { localStorage.setItem(LS_CHATS, JSON.stringify(state.chats)); }
 function getActiveChat() { return state.chats.find(c => c.id === state.activeId); }
@@ -327,9 +335,68 @@ function renderMessages() {
 }
 
 /* ============================================================
-   API DENGAN AUTO-RETRY (EXPONENTIAL BACKOFF)
+   PROVIDER & SETTINGS LOGIC
    ============================================================ */
-async function fetchWithRetry(url, options, maxRetries = 3) {
+const GEMINI_MODELS = [
+  { id: 'gemini-flash-latest', name: 'Gemini Flash Latest (Sangat Cepat)' },
+  { id: 'gemini-pro-latest', name: 'Gemini Pro Latest (Lebih Pintar)' }
+];
+const GROQ_MODELS = [
+  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Pintar)' },
+  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Super Cepat)' }
+];
+
+function updateSettingsUI() {
+  const p = els.providerSelect.value;
+  els.apiKeyInput.value = p === 'gemini' ? (localStorage.getItem(LS_GEMINI_KEY)||'') : (localStorage.getItem(LS_GROQ_KEY)||'');
+  
+  if (p === 'gemini') {
+    els.apiKeyLabel.textContent = 'API Key Gemini';
+    els.apiKeyInput.placeholder = 'AIzaSy...';
+    els.modelLabel.textContent = 'Model Gemini';
+    els.modelSelect.innerHTML = GEMINI_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    els.modelSelect.value = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
+  } else {
+    els.apiKeyLabel.textContent = 'API Key Groq (gsk_...)';
+    els.apiKeyInput.placeholder = 'gsk_...';
+    els.modelLabel.textContent = 'Model Groq';
+    els.modelSelect.innerHTML = GROQ_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    els.modelSelect.value = localStorage.getItem(LS_GROQ_MODEL) || 'llama-3.3-70b-versatile';
+  }
+}
+
+els.providerSelect.onchange = updateSettingsUI;
+
+window.openSettings = () => {
+  els.providerSelect.value = state.provider;
+  updateSettingsUI();
+  els.settingsModal.classList.add('show');
+};
+
+els.saveSettings.onclick = () => {
+  const p = els.providerSelect.value;
+  const key = els.apiKeyInput.value.trim();
+  const model = els.modelSelect.value;
+  if (!key) { showToast('API Key tidak boleh kosong', 'error'); return; }
+  
+  localStorage.setItem(LS_PROVIDER, p);
+  if (p === 'gemini') {
+    localStorage.setItem(LS_GEMINI_KEY, key);
+    localStorage.setItem(LS_GEMINI_MODEL, model);
+  } else {
+    localStorage.setItem(LS_GROQ_KEY, key);
+    localStorage.setItem(LS_GROQ_MODEL, model);
+  }
+  
+  state.provider = p;
+  els.settingsModal.classList.remove('show');
+  showToast(`Beralih ke ${p === 'gemini' ? 'Gemini' : 'Groq'}`, 'success');
+};
+
+/* ============================================================
+   API CALLS (GEMINI & GROQ)
+   ============================================================ */
+async function fetchWithRetry(url, options, maxRetries = 2) {
   let attempt = 0;
   while (attempt < maxRetries) {
     try {
@@ -338,14 +405,11 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
         attempt++;
         if (attempt >= maxRetries) {
           const err = await response.json().catch(() => ({}));
-          throw new Error(err.error?.message || 'Kuota habis. Ganti model ke Flash atau tunggu sebentar.');
+          throw new Error(err.error?.message || 'Kuota habis. Ganti provider ke Groq atau tunggu.');
         }
-        const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-        console.log(`[Rate Limit] Menunggu ${waitTime}ms sebelum mencoba lagi...`);
-        els.toast.textContent = `Kuota penuh, mencoba lagi dalam ${waitTime/1000} detik...`;
-        els.toast.className = 'toast show';
+        const waitTime = Math.pow(2, attempt) * 1000;
+        showToast(`Rate limit. Mencoba lagi dalam ${waitTime/1000} detik...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
-        els.toast.classList.remove('show');
         continue;
       }
       if (!response.ok) {
@@ -361,23 +425,19 @@ async function fetchWithRetry(url, options, maxRetries = 3) {
   }
 }
 
-/* API UNTUK CHAT (STREAMING) */
+/* --- GEMINI STREAMING --- */
 async function callGeminiStreaming(messages, onChunk) {
-  const apiKey = localStorage.getItem(LS_API);
-  const model = localStorage.getItem(LS_MODEL) || 'gemini-flash-latest';
-  if (!apiKey) { openSettings(); throw new Error('API Key belum diatur.'); }
+  const apiKey = localStorage.getItem(LS_GEMINI_KEY);
+  const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
+  if (!apiKey) throw new Error('API Key Gemini belum diatur.');
 
   const contents = messages.map(m => {
     const parts = [{ text: m.text }];
-    if (m.image) {
-      const base64Data = m.image.split(',')[1];
-      parts.push({ inlineData: { mimeType: "image/jpeg", data: base64Data } });
-    }
+    if (m.image) parts.push({ inlineData: { mimeType: "image/jpeg", data: m.image.split(',')[1] } });
     return { role: m.role === 'model' ? 'model' : 'user', parts };
   });
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-  
   const response = await fetchWithRetry(url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } })
@@ -386,13 +446,11 @@ async function callGeminiStreaming(messages, onChunk) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let fullText = "";
-
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split("\n");
-    for (const line of lines) {
+    for (const line of chunk.split("\n")) {
       if (line.startsWith("data: ")) {
         const dataStr = line.slice(6);
         if (dataStr === "[DONE]") break;
@@ -407,12 +465,47 @@ async function callGeminiStreaming(messages, onChunk) {
   return fullText;
 }
 
-/* API UNTUK PANGGILAN (SINGKAT & CEPAT) */
+/* --- GROQ STREAMING --- */
+async function callGroqStreaming(messages, onChunk) {
+  const apiKey = localStorage.getItem(LS_GROQ_KEY);
+  const model = localStorage.getItem(LS_GROQ_MODEL) || 'llama-3.3-70b-versatile';
+  if (!apiKey) throw new Error('API Key Groq belum diatur.');
+
+  const chatMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))];
+
+  const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model, messages: chatMessages, stream: true, temperature: 0.7 })
+  });
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let fullText = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    for (const line of chunk.split("\n")) {
+      if (line.startsWith("data: ")) {
+        const dataStr = line.slice(6);
+        if (dataStr === "[DONE]") break;
+        try {
+          const data = JSON.parse(dataStr);
+          const text = data.choices?.[0]?.delta?.content || "";
+          if (text) { fullText += text; onChunk(fullText); }
+        } catch (e) {}
+      }
+    }
+  }
+  return fullText;
+}
+
+/* --- VOICE (NON-STREAMING) --- */
 async function callGeminiTextVoice(userText) {
-  const apiKey = localStorage.getItem(LS_API);
-  const model = localStorage.getItem(LS_MODEL) || 'gemini-flash-latest';
+  const apiKey = localStorage.getItem(LS_GEMINI_KEY);
+  const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  
   const response = await fetchWithRetry(url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
@@ -421,12 +514,39 @@ async function callGeminiTextVoice(userText) {
       generationConfig: { maxOutputTokens: 100 }
     })
   });
-
   const data = await response.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "Oke.";
 }
 
-/* SEND MESSAGE (TEKS) */
+async function callGroqTextVoice(userText) {
+  const apiKey = localStorage.getItem(LS_GROQ_KEY);
+  const model = localStorage.getItem(LS_GROQ_MODEL) || 'llama-3.3-70b-versatile';
+  const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ 
+      model, 
+      messages: [{ role: 'system', content: VOICE_PROMPT }, { role: 'user', content: userText }],
+      max_tokens: 100
+    })
+  });
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "Oke.";
+}
+
+/* --- WRAPPER --- */
+async function callAIStreaming(messages, onChunk) {
+  if (state.provider === 'gemini') return callGeminiStreaming(messages, onChunk);
+  return callGroqStreaming(messages, onChunk);
+}
+async function callAITextVoice(userText) {
+  if (state.provider === 'gemini') return callGeminiTextVoice(userText);
+  return callGroqTextVoice(userText);
+}
+
+/* ============================================================
+   SEND MESSAGE (TEKS)
+   ============================================================ */
 async function sendMessage() {
   const text = els.userInput.value.trim();
   if ((!text && !state.imageBase64) || state.sending) return;
@@ -450,7 +570,7 @@ async function sendMessage() {
 
   try {
     let fullReply = "";
-    await callGeminiStreaming(chat.messages, (currentText) => {
+    await callAIStreaming(chat.messages, (currentText) => {
       fullReply = currentText;
       const indicator = document.getElementById('thinking-indicator');
       if (indicator) indicator.remove();
@@ -476,7 +596,9 @@ function updateSendBtn() {
   els.sendBtn.disabled = (!els.userInput.value.trim() && !state.imageBase64) || state.sending;
 }
 
-/* VOICE CALL LOGIC */
+/* ============================================================
+   VOICE CALL LOGIC
+   ============================================================ */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 let synth = window.speechSynthesis;
@@ -501,7 +623,7 @@ if (SpeechRecognition) {
     recognition.abort();
 
     try {
-      const reply = await callGeminiTextVoice(transcript);
+      const reply = await callAITextVoice(transcript);
       speakText(reply);
     } catch (err) {
       els.voiceStatus.textContent = 'Error jaringan.';
@@ -556,7 +678,9 @@ function endCall() {
   els.voiceOverlay.classList.remove('active'); els.callTimer.textContent = '00:00';
 }
 
-/* EVENT LISTENERS */
+/* ============================================================
+   EVENT LISTENERS
+   ============================================================ */
 els.sendBtn.onclick = sendMessage;
 els.userInput.oninput = () => { els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px'; updateSendBtn(); };
 els.userInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
@@ -594,26 +718,21 @@ els.imageUpload.onchange = (e) => {
   reader.readAsDataURL(file);
 };
 
-/* SETTINGS */
-window.openSettings = () => {
-  els.apiKeyInput.value = localStorage.getItem(LS_API) || '';
-  els.modelSelect.value = localStorage.getItem(LS_MODEL) || 'gemini-flash-latest';
-  els.settingsModal.classList.add('show');
-};
 els.settingsBtn.onclick = openSettings;
 els.closeSettings.onclick = () => els.settingsModal.classList.remove('show');
-els.saveSettings.onclick = () => {
-  localStorage.setItem(LS_API, els.apiKeyInput.value.trim());
-  localStorage.setItem(LS_MODEL, els.modelSelect.value);
-  els.settingsModal.classList.remove('show');
-  showToast('Disimpan', 'success');
-};
 
-/* INIT */
+/* ============================================================
+   INIT
+   ============================================================ */
+state.provider = localStorage.getItem(LS_PROVIDER) || 'gemini';
 loadChats();
 if (state.chats.length > 0) { state.activeId = state.chats[0].id; renderMessages(); }
 renderChatList();
-if (!localStorage.getItem(LS_API)) setTimeout(openSettings, 500);
+
+// Buka pengaturan jika API Key belum ada
+if (!localStorage.getItem(LS_GEMINI_KEY) && !localStorage.getItem(LS_GROQ_KEY)) {
+  setTimeout(openSettings, 500);
+}
 </script>
 </body>
 </html>
