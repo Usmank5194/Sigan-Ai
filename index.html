@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Sigan Ai - 4 Layer AI</title>
+<title>Sigan Ai - 4 Layer</title>
 <!-- LIBRARY -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -16,7 +16,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
 <style>
-/* CSS SAMA SEPERTI SEBELUMNYA */
 :root { --bg: #0f0f0f; --surface: #1e1e1e; --surface-hover: #2d2d2d; --text: #f3f4f6; --text-muted: #9ca3af; --primary: #3b82f6; --border: #333333; --danger: #ef4444; }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -76,7 +75,8 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
 .chip { white-space: nowrap; padding: 8px 16px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; transition: 0.2s; }
 .chip:hover { background: var(--surface-hover); color: var(--text); }
 .input-box { width: 100%; max-width: 800px; background: var(--surface); border-radius: 24px; display: flex; align-items: flex-end; padding: 8px 12px; border: 1px solid var(--border); }
-#userInput { flex: 1; padding: 12px 8px; resize: none; font-size: 15px; line-height: 1.5; max-height: 120px; min-height: 24px; color: var(--text); background: transparent; }
+#userInput { flex: 1; padding: 12px 8px; resize: none; font-size: 15px; line-height: 1.5; max-height: 120px; min-height: 24px; color: var(--text); background: transparent; overflow-y: auto; scrollbar-width: none; }
+#userInput::-webkit-scrollbar { display: none; }
 .input-actions { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
 .action-btn { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: 0.2s; }
 .action-btn:hover { background: var(--surface-hover); color: var(--text); }
@@ -226,14 +226,14 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
 
 <script>
 /* ============================================================
-   SIGAN AI v17.0 - 4 Layer Defense (Groq, Gemini, LLM7, NVIDIA)
+   SIGAN AI v17.1 - 4 Layer Defense (Fixed UI & LLM7)
    ============================================================ */
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
 const LS_CHATS = 'sigan_chats_v4';
 const LS_PROVIDER = 'sigan_provider';
-const MAX_MEMORY_MESSAGES = 10; // Ingatan jangka pendek
+const MAX_MEMORY_MESSAGES = 10; 
 
 const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa. Karakter: Ramah, cerdas, dan profesional. Jawab dengan format Markdown yang rapi.`;
 
@@ -246,7 +246,7 @@ const els = {};
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-/* --- MARKDOWN RENDERER --- */
+/* --- MARKDOWN --- */
 function renderMarkdown(text) {
   let s = escapeHtml(text);
   s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => `<div class="code-container"><button class="copy-btn" onclick="copyCode(this)">Salin</button><pre><code>${code.replace(/\n$/, '')}</code></pre></div>`);
@@ -318,7 +318,7 @@ function renderMessages() {
   els.chatArea.scrollTop = els.chatArea.scrollHeight;
 }
 
-/* --- DOWNLOAD FILE --- */
+/* --- DOWNLOAD --- */
 window.downloadPDF = function(btn) { const bubble = btn.closest('.bubble'); btn.closest('.action-toolbar').style.display = 'none'; const opt = { margin: 10, filename: 'SiganAI.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } }; const clone = bubble.cloneNode(true); clone.style.color = '#000'; clone.style.background = '#fff'; html2pdf().set(opt).from(clone).save().then(() => { btn.closest('.action-toolbar').style.display = 'flex'; }); };
 window.downloadWord = function(btn) { const bubble = btn.closest('.bubble'); const clone = bubble.cloneNode(true); clone.querySelector('.action-toolbar').remove(); const blob = htmlDocx.asBlob(`<html><body>${clone.innerHTML}</body></html>`); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'SiganAI.docx'; a.click(); };
 window.downloadExcel = function(btn) { const table = btn.closest('.bubble').querySelector('table'); if (!table) { showToast('Tidak ada tabel.', 'error'); return; } const wb = XLSX.utils.table_to_book(table); XLSX.writeFile(wb, 'SiganAI.xlsx'); };
@@ -333,20 +333,17 @@ const MODELS = {
   gemini: [
     { id: 'gemini-flash-latest', name: 'Gemini Flash Latest' }
   ],
- llm7: [
-  { id: 'default', name: 'Default (Otomatis)' },
-  { id: 'fast', name: 'Fast (Respons Cepat)' },
-  { id: 'gpt-4o-mini-2024-07-18', name: 'GPT-4o Mini (Spesifik)' }
-]
+  llm7: [
+    { id: 'default', name: 'Default (Otomatis)' },
+    { id: 'fast', name: 'Fast (Respons Cepat)' }
+  ],
   nvidia: [
     { id: 'deepseek-ai/deepseek-v4.1-flash', name: 'DeepSeek V4.1 Flash (Jenius)' },
     { id: 'meta/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' }
   ]
 };
 
-const PLACEHOLDERS = {
-  groq: 'gsk_...', gemini: 'AIzaSy...', llm7: 'sk-...', nvidia: 'nvapi-...'
-};
+const PLACEHOLDERS = { groq: 'gsk_...', gemini: 'AIzaSy...', llm7: 'sk-... (Opsional)', nvidia: 'nvapi-...' };
 
 function updateSettingsUI() {
   const p = els.providerSelect.value;
@@ -363,7 +360,6 @@ els.providerSelect.onchange = updateSettingsUI;
 window.openSettings = () => { els.providerSelect.value = state.provider; updateSettingsUI(); els.settingsModal.classList.add('show'); };
 els.saveSettings.onclick = () => {
   const p = els.providerSelect.value; const key = els.apiKeyInput.value.trim();
-  if (!key) { showToast('API Key tidak boleh kosong', 'error'); return; }
   localStorage.setItem(LS_PROVIDER, p);
   localStorage.setItem(`sigan_${p}_key`, key);
   localStorage.setItem(`sigan_${p}_model`, els.modelSelect.value);
@@ -377,19 +373,25 @@ async function fetchWithRetry(url, options) {
   for (let i=0; i<3; i++) {
     const res = await fetch(url, options);
     if (res.status === 429) { await new Promise(r => setTimeout(r, 2000)); continue; }
-    if (!res.ok) throw new Error('Gagal terhubung ke API');
+    if (!res.ok) {
+      let errMsg = 'Gagal terhubung ke API';
+      try { const err = await res.json(); errMsg = err.error?.message || errMsg; } catch(e){}
+      throw new Error(errMsg);
+    }
     return res;
   }
-  throw new Error('Kuota API habis.');
+  throw new Error('Kuota API habis / Koneksi terputus.');
 }
 
-/* Generic OpenAI Format Caller (Untuk Groq, LLM7, NVIDIA) */
 async function callOpenAICompatibleStreaming(url, apiKey, model, messages, onChunk) {
   const recentMessages = messages.slice(-MAX_MEMORY_MESSAGES);
   const chatMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...recentMessages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))];
   
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
   const response = await fetchWithRetry(url, { 
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, 
+    method: 'POST', headers: headers, 
     body: JSON.stringify({ model, messages: chatMessages, stream: true }) 
   });
   
@@ -407,7 +409,6 @@ async function callOpenAICompatibleStreaming(url, apiKey, model, messages, onChu
   return fullText;
 }
 
-/* Gemini Khusus (Karena beda format) */
 async function callGeminiStreaming(messages, onChunk) {
   const apiKey = localStorage.getItem('sigan_gemini_key'); const model = localStorage.getItem('sigan_gemini_model') || 'gemini-flash-latest';
   const recentMessages = messages.slice(-MAX_MEMORY_MESSAGES);
@@ -424,15 +425,8 @@ async function callAIStreaming(messages, onChunk) {
     return callOpenAICompatibleStreaming('https://api.groq.com/openai/v1/chat/completions', localStorage.getItem('sigan_groq_key'), localStorage.getItem('sigan_groq_model') || 'openai/gpt-oss-120b', messages, onChunk);
   }
   if (state.provider === 'llm7') {
-  const llm7Key = localStorage.getItem('sigan_llm7_key') || 'unused';
-  return callOpenAICompatibleStreaming(
-    'https://api.llm7.io/v1/chat/completions', 
-    llm7Key, 
-    localStorage.getItem('sigan_llm7_model') || 'default', 
-    messages, 
-    onChunk
-  );
-}
+    return callOpenAICompatibleStreaming('https://api.llm7.io/v1/chat/completions', localStorage.getItem('sigan_llm7_key'), localStorage.getItem('sigan_llm7_model') || 'default', messages, onChunk);
+  }
   if (state.provider === 'nvidia') {
     return callOpenAICompatibleStreaming('https://integrate.api.nvidia.com/v1/chat/completions', localStorage.getItem('sigan_nvidia_key'), localStorage.getItem('sigan_nvidia_model') || 'deepseek-ai/deepseek-v4.1-flash', messages, onChunk);
   }
@@ -447,10 +441,13 @@ async function callAITextVoice(userText) {
   } else {
     let url, key, model;
     if (state.provider === 'groq') { url = 'https://api.groq.com/openai/v1/chat/completions'; key = localStorage.getItem('sigan_groq_key'); model = localStorage.getItem('sigan_groq_model') || 'openai/gpt-oss-120b'; }
-    else if (state.provider === 'llm7') { url = 'https://api.llm7.io/v1/chat/completions'; key = localStorage.getItem('sigan_llm7_key'); model = localStorage.getItem('sigan_llm7_model') || 'gpt-4o-mini'; }
+    else if (state.provider === 'llm7') { url = 'https://api.llm7.io/v1/chat/completions'; key = localStorage.getItem('sigan_llm7_key'); model = localStorage.getItem('sigan_llm7_model') || 'default'; }
     else if (state.provider === 'nvidia') { url = 'https://integrate.api.nvidia.com/v1/chat/completions'; key = localStorage.getItem('sigan_nvidia_key'); model = localStorage.getItem('sigan_nvidia_model') || 'deepseek-ai/deepseek-v4.1-flash'; }
     
-    const response = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify({ model, messages: [{ role: 'system', content: "Jawab maksimal 2 kalimat." }, { role: 'user', content: userText }], max_tokens: 100 }) });
+    const headers = { 'Content-Type': 'application/json' };
+    if (key) headers['Authorization'] = `Bearer ${key}`;
+
+    const response = await fetchWithRetry(url, { method: 'POST', headers: headers, body: JSON.stringify({ model, messages: [{ role: 'system', content: "Jawab maksimal 2 kalimat." }, { role: 'user', content: userText }], max_tokens: 100 }) });
     const data = await response.json(); return data.choices?.[0]?.message?.content || "Oke.";
   }
 }
@@ -579,6 +576,7 @@ state.provider = localStorage.getItem(LS_PROVIDER) || 'groq';
 loadChats();
 if (state.chats.length > 0) { state.activeId = state.chats[0].id; renderMessages(); }
 renderChatList();
+updateSendBtn();
 </script>
 </body>
 </html>
