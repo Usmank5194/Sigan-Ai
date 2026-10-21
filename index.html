@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Sigan Ai - Full Features</title>
+<title>Sigan Ai - Full Version</title>
 <!-- LIBRARY -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -150,7 +150,6 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
   </div>
 
   <div class="input-wrapper">
-    <!-- TOMBOL PINTASAN KEMBALI LENGKAP -->
     <div class="chips-container" id="chips">
       <button class="chip" data-prompt="Buatkan laporan kegiatan penyuluhan KB dalam format lengkap: "><span>📄</span> Buat Laporan</button>
       <button class="chip" data-prompt="Buatkan struktur presentasi (PPT) beserta isi slide-nya tentang: "><span>📽️</span> Buat PPT</button>
@@ -162,6 +161,11 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
     <div class="input-box">
       <button class="action-btn" id="fileBtn" title="Upload Dokumen (PDF, Word)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      
+      <!-- Tombol Pencarian Kembali -->
+      <button class="action-btn" id="searchBtn" title="Cari di Internet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
       
       <textarea id="userInput" placeholder="Ketik pesan..." rows="1"></textarea>
@@ -226,7 +230,7 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
 
 <script>
 /* ============================================================
-   SIGAN AI v19.0 - Full Features & Restored Chips
+   SIGAN AI v19.1 - Bugfix UI & Restored Buttons
    ============================================================ */
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -239,11 +243,11 @@ const MAX_MEMORY_MESSAGES = 10;
 const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa. Karakter: Ramah, cerdas, dan profesional. 
 PENTING: Jika pengguna memberikan "Konteks Pencarian Web", gunakan informasi tersebut sebagai sumber kebenaran utama untuk menjawab. Abaikan memori internal Anda jika bertentangan dengan hasil pencarian web. Sebutkan sumber/referensinya dengan jelas.`;
 
-const state = { chats: [], activeId: null, sending: false, imageBase64: null, fileText: null, fileName: null, provider: 'groq' };
+const state = { chats: [], activeId: null, sending: false, imageBase64: null, fileText: null, fileName: null, provider: 'groq', searchMode: false };
 let callState = { active: false, timer: null, seconds: 0, isSpeaking: false, isProcessing: false };
 
 const els = {};
-['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar','sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings','providerSelect','apiKeyLabel','apiKeyInput','tavilyKeyInput','modelLabel','modelSelect','saveSettings','toast','chips','imageUpload','cameraBtn','fileBtn','fileUpload', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'].forEach(id => els[id] = document.getElementById(id));
+['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar','sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings','providerSelect','apiKeyLabel','apiKeyInput','tavilyKeyInput','modelLabel','modelSelect','saveSettings','toast','chips','imageUpload','cameraBtn','fileBtn','searchBtn','fileUpload', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'].forEach(id => els[id] = document.getElementById(id));
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -507,7 +511,7 @@ async function sendMessage() {
     chat.messages.push({ role: 'error', text: e.message, ts: Date.now() });
   } finally {
     state.sending = false; saveChats(); renderMessages(); updateSendBtn();
-    state.searchMode = false; els.searchBtn.classList.remove('active'); 
+    state.searchMode = false; if(els.searchBtn) els.searchBtn.classList.remove('active'); 
   }
 }
 function updateSendBtn() { els.sendBtn.disabled = (!els.userInput.value.trim() && !state.imageBase64 && !state.fileText) || state.sending; }
@@ -552,11 +556,10 @@ els.chips.onclick = (e) => {
   els.userInput.value = chip.dataset.prompt;
   els.userInput.focus();
   
-  // Jika chip memiliki atribut data-search="true", aktifkan mode search otomatis
   if (chip.dataset.search === "true") {
     state.searchMode = true;
     if(els.searchBtn) els.searchBtn.classList.add('active');
-    sendMessage(); // Langsung kirim
+    sendMessage();
   } else {
     updateSendBtn();
     els.userInput.setSelectionRange(els.userInput.value.length, els.userInput.value.length);
