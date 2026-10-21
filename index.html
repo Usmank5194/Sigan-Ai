@@ -182,10 +182,8 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
   </div>
 </div>
 
-<!-- HIDDEN INPUTS -->
 <input type="file" id="imageUpload" accept="image/*">
 
-<!-- VOICE CALL OVERLAY -->
 <div class="voice-overlay" id="voiceOverlay">
   <div class="voice-top">
     <div class="voice-timer" id="callTimer">00:00</div>
@@ -200,7 +198,6 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
   </div>
 </div>
 
-<!-- SIDEBAR & MODALS -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-head"><div class="brand">❖ Sigan Ai</div><button class="icon-btn" id="closeSidebar">×</button></div>
@@ -215,8 +212,8 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
       <div class="form-group">
         <label>Penyedia AI (Provider)</label>
         <select id="providerSelect">
-          <option value="gemini">Google Gemini (Kuota Terbatas)</option>
-          <option value="groq">Groq - Llama 3 (Kuota Sangat Besar)</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="groq">Groq - GPT OSS (Kuota Besar)</option>
         </select>
       </div>
       <div class="form-group">
@@ -235,7 +232,7 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
 <script>
 /* ============================================================
-   SIGAN AI v13.0 - Dual Provider (Gemini + Groq)
+   SIGAN AI v14.0 - Updated Groq Models (GPT-OSS)
    ============================================================ */
 
 const LS_CHATS = 'sigan_chats_v4';
@@ -263,7 +260,6 @@ const els = {};
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-/* --- MARKDOWN RENDERER --- */
 function renderMarkdown(text) {
   let s = escapeHtml(text);
   const codeBlocks = [];
@@ -293,7 +289,6 @@ window.copyCode = function(btn) {
 };
 function showToast(msg, type = '') { els.toast.textContent = msg; els.toast.className = `toast show ${type}`; setTimeout(() => els.toast.classList.remove('show'), 3000); }
 
-/* --- CHAT CORE --- */
 function loadChats() { try { state.chats = JSON.parse(localStorage.getItem(LS_CHATS)) || []; } catch { state.chats = []; } }
 function saveChats() { localStorage.setItem(LS_CHATS, JSON.stringify(state.chats)); }
 function getActiveChat() { return state.chats.find(c => c.id === state.activeId); }
@@ -335,15 +330,16 @@ function renderMessages() {
 }
 
 /* ============================================================
-   PROVIDER & SETTINGS LOGIC
+   SETTINGS & MODELS (UPDATED)
    ============================================================ */
 const GEMINI_MODELS = [
   { id: 'gemini-flash-latest', name: 'Gemini Flash Latest (Sangat Cepat)' },
   { id: 'gemini-pro-latest', name: 'Gemini Pro Latest (Lebih Pintar)' }
 ];
+// Groq telah menghapus Llama lama, kini memakai GPT-OSS
 const GROQ_MODELS = [
-  { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Pintar)' },
-  { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Super Cepat)' }
+  { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B (Pintar)' },
+  { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B (Super Cepat)' }
 ];
 
 function updateSettingsUI() {
@@ -361,7 +357,7 @@ function updateSettingsUI() {
     els.apiKeyInput.placeholder = 'gsk_...';
     els.modelLabel.textContent = 'Model Groq';
     els.modelSelect.innerHTML = GROQ_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-    els.modelSelect.value = localStorage.getItem(LS_GROQ_MODEL) || 'llama-3.3-70b-versatile';
+    els.modelSelect.value = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
   }
 }
 
@@ -390,11 +386,11 @@ els.saveSettings.onclick = () => {
   
   state.provider = p;
   els.settingsModal.classList.remove('show');
-  showToast(`Beralih ke ${p === 'gemini' ? 'Gemini' : 'Groq'}`, 'success');
+  showToast(`Beralih ke ${p === 'gemini' ? 'Gemini' : 'Groq (GPT-OSS)'}`, 'success');
 };
 
 /* ============================================================
-   API CALLS (GEMINI & GROQ)
+   API CALLS
    ============================================================ */
 async function fetchWithRetry(url, options, maxRetries = 2) {
   let attempt = 0;
@@ -405,7 +401,7 @@ async function fetchWithRetry(url, options, maxRetries = 2) {
         attempt++;
         if (attempt >= maxRetries) {
           const err = await response.json().catch(() => ({}));
-          throw new Error(err.error?.message || 'Kuota habis. Ganti provider ke Groq atau tunggu.');
+          throw new Error(err.error?.message || 'Kuota habis. Ganti provider atau tunggu.');
         }
         const waitTime = Math.pow(2, attempt) * 1000;
         showToast(`Rate limit. Mencoba lagi dalam ${waitTime/1000} detik...`);
@@ -425,7 +421,6 @@ async function fetchWithRetry(url, options, maxRetries = 2) {
   }
 }
 
-/* --- GEMINI STREAMING --- */
 async function callGeminiStreaming(messages, onChunk) {
   const apiKey = localStorage.getItem(LS_GEMINI_KEY);
   const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
@@ -465,10 +460,9 @@ async function callGeminiStreaming(messages, onChunk) {
   return fullText;
 }
 
-/* --- GROQ STREAMING --- */
 async function callGroqStreaming(messages, onChunk) {
   const apiKey = localStorage.getItem(LS_GROQ_KEY);
-  const model = localStorage.getItem(LS_GROQ_MODEL) || 'llama-3.3-70b-versatile';
+  const model = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
   if (!apiKey) throw new Error('API Key Groq belum diatur.');
 
   const chatMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))];
@@ -501,7 +495,6 @@ async function callGroqStreaming(messages, onChunk) {
   return fullText;
 }
 
-/* --- VOICE (NON-STREAMING) --- */
 async function callGeminiTextVoice(userText) {
   const apiKey = localStorage.getItem(LS_GEMINI_KEY);
   const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
@@ -520,7 +513,7 @@ async function callGeminiTextVoice(userText) {
 
 async function callGroqTextVoice(userText) {
   const apiKey = localStorage.getItem(LS_GROQ_KEY);
-  const model = localStorage.getItem(LS_GROQ_MODEL) || 'llama-3.3-70b-versatile';
+  const model = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
   const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
@@ -534,7 +527,6 @@ async function callGroqTextVoice(userText) {
   return data.choices?.[0]?.message?.content || "Oke.";
 }
 
-/* --- WRAPPER --- */
 async function callAIStreaming(messages, onChunk) {
   if (state.provider === 'gemini') return callGeminiStreaming(messages, onChunk);
   return callGroqStreaming(messages, onChunk);
@@ -692,7 +684,6 @@ els.menuBtn.onclick = () => { els.sidebar.classList.add('open'); els.sidebarOver
 window.closeSidebar = () => { els.sidebar.classList.remove('open'); els.sidebarOverlay.classList.remove('show'); };
 els.closeSidebar.onclick = closeSidebar; els.sidebarOverlay.onclick = closeSidebar;
 
-/* CHIPS LOGIC */
 els.chips.onclick = (e) => {
   const chip = e.target.closest('.chip');
   if (!chip) return;
@@ -703,7 +694,6 @@ els.chips.onclick = (e) => {
   els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px';
 };
 
-/* CAMERA / GAMBAR */
 els.cameraBtn.onclick = () => els.imageUpload.click();
 els.imageUpload.onchange = (e) => {
   const file = e.target.files[0];
@@ -729,7 +719,6 @@ loadChats();
 if (state.chats.length > 0) { state.activeId = state.chats[0].id; renderMessages(); }
 renderChatList();
 
-// Buka pengaturan jika API Key belum ada
 if (!localStorage.getItem(LS_GEMINI_KEY) && !localStorage.getItem(LS_GROQ_KEY)) {
   setTimeout(openSettings, 500);
 }
