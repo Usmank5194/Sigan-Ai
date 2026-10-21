@@ -333,9 +333,11 @@ const MODELS = {
   gemini: [
     { id: 'gemini-flash-latest', name: 'Gemini Flash Latest' }
   ],
-  llm7: [
-    { id: 'default', name: 'Default (Otomatis)' },
-    { id: 'fast', name: 'Fast (Respons Cepat)' }
+   llm7: [
+    { id: 'default', name: 'Default (Otomatis - Rekomendasi)' },
+    { id: 'fast', name: 'Fast (Respons Cepat)' },
+    { id: 'deepseek-r1', name: 'DeepSeek R1' },
+    { id: 'gpt-oss-20b', name: 'GPT-OSS 20B' }
   ],
   nvidia: [
     { id: 'deepseek-ai/deepseek-v4.1-flash', name: 'DeepSeek V4.1 Flash (Jenius)' },
@@ -424,7 +426,7 @@ async function callAIStreaming(messages, onChunk) {
   if (state.provider === 'groq') {
     return callOpenAICompatibleStreaming('https://api.groq.com/openai/v1/chat/completions', localStorage.getItem('sigan_groq_key'), localStorage.getItem('sigan_groq_model') || 'openai/gpt-oss-120b', messages, onChunk);
   }
-  if (state.provider === 'llm7') {
+    if (state.provider === 'llm7') {
     return callOpenAICompatibleStreaming('https://api.llm7.io/v1/chat/completions', localStorage.getItem('sigan_llm7_key'), localStorage.getItem('sigan_llm7_model') || 'default', messages, onChunk);
   }
   if (state.provider === 'nvidia') {
