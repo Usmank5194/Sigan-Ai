@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Sigan Ai - Deep Search</title>
+<title>Sigan Ai - Full Features</title>
 <!-- LIBRARY -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -16,7 +16,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
 <style>
-/* CSS SAMA SEPERTI SEBELUMNYA */
 :root { --bg: #0f0f0f; --surface: #1e1e1e; --surface-hover: #2d2d2d; --text: #f3f4f6; --text-muted: #9ca3af; --primary: #3b82f6; --border: #333333; --danger: #ef4444; }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -143,25 +142,29 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
 
   <div class="chat-area" id="chatArea">
     <div class="welcome" id="welcome">
-      <div class="welcome-logo">🌐</div>
-      <h2>Sigan Ai - Deep Search</h2>
-      <p>Klik ikon Bumi di bawah untuk mencari berita atau fakta terbaru di internet (Tavily API).</p>
+      <div class="welcome-logo">🛡️</div>
+      <h2>Sigan Ai - Full Version</h2>
+      <p>Pintasan lengkap, Pencarian Web, dan 4 Lapisan AI siap membantu.</p>
     </div>
     <div class="messages" id="messages"></div>
   </div>
 
   <div class="input-wrapper">
+    <!-- TOMBOL PINTASAN KEMBALI LENGKAP -->
     <div class="chips-container" id="chips">
       <button class="chip" data-prompt="Buatkan laporan kegiatan penyuluhan KB dalam format lengkap: "><span>📄</span> Buat Laporan</button>
-      <button class="chip" data-prompt="Siapa pimpinan BKKBN saat ini di tahun 2026?"><span>🌐</span> Cari Pimpinan BKKBN</button>
+      <button class="chip" data-prompt="Buatkan struktur presentasi (PPT) beserta isi slide-nya tentang: "><span>📽️</span> Buat PPT</button>
+      <button class="chip" data-prompt="Buatkan tabel data Excel tentang: "><span>📊</span> Buat Excel</button>
+      <button class="chip" data-prompt="Tolong terjemahkan teks berikut: "><span>🌐</span> Terjemahkan</button>
+      <button class="chip" data-prompt="Cari di internet: Siapa pimpinan BKKBN saat ini di tahun 2026?" data-search="true"><span>🔍</span> Cari Fakta (Web)</button>
     </div>
 
     <div class="input-box">
-      <button class="action-btn" id="searchBtn" title="Cari di Internet">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <button class="action-btn" id="fileBtn" title="Upload Dokumen (PDF, Word)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
       </button>
       
-      <textarea id="userInput" placeholder="Ketik pesan atau cari fakta..." rows="1"></textarea>
+      <textarea id="userInput" placeholder="Ketik pesan..." rows="1"></textarea>
       
       <div class="input-actions">
         <button class="action-btn" id="cameraBtn" title="Buka Kamera">
@@ -174,6 +177,7 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
 </div>
 
 <input type="file" id="imageUpload" accept="image/*" capture="environment">
+<input type="file" id="fileUpload" accept=".pdf,.doc,.docx,.txt,.csv">
 
 <div class="voice-overlay" id="voiceOverlay">
   <div class="voice-top"><div class="voice-timer" id="callTimer">00:00</div><div class="voice-desc">Sigan Ai Live Call</div></div>
@@ -222,7 +226,7 @@ input, textarea, select { font-family: inherit; outline: none; border: none; bac
 
 <script>
 /* ============================================================
-   SIGAN AI v18.1 - Deep Web Search (Tavily Integration)
+   SIGAN AI v19.0 - Full Features & Restored Chips
    ============================================================ */
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -233,13 +237,13 @@ const LS_TAVILY = 'sigan_tavily_key';
 const MAX_MEMORY_MESSAGES = 10; 
 
 const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa. Karakter: Ramah, cerdas, dan profesional. 
-PENTING: Jika pengguna memberikan "Konteks Pencarian Web", gunakan informasi tersebut sebagai sumber kebenaran utama untuk menjawab. Abaikan memori internal Anda jika bertentangan dengan hasil pencarian web. Berikan referensi/sumber jika memungkinkan.`;
+PENTING: Jika pengguna memberikan "Konteks Pencarian Web", gunakan informasi tersebut sebagai sumber kebenaran utama untuk menjawab. Abaikan memori internal Anda jika bertentangan dengan hasil pencarian web. Sebutkan sumber/referensinya dengan jelas.`;
 
-const state = { chats: [], activeId: null, sending: false, imageBase64: null, provider: 'groq', searchMode: false };
+const state = { chats: [], activeId: null, sending: false, imageBase64: null, fileText: null, fileName: null, provider: 'groq' };
 let callState = { active: false, timer: null, seconds: 0, isSpeaking: false, isProcessing: false };
 
 const els = {};
-['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar','sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings','providerSelect','apiKeyLabel','apiKeyInput','tavilyKeyInput','modelLabel','modelSelect','saveSettings','toast','chips','imageUpload','cameraBtn','searchBtn', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'].forEach(id => els[id] = document.getElementById(id));
+['chatArea','messages','welcome','userInput','sendBtn','menuBtn','newChatBtnHeader','closeSidebar','sidebar','sidebarOverlay','chatList','settingsBtn','settingsModal','closeSettings','providerSelect','apiKeyLabel','apiKeyInput','tavilyKeyInput','modelLabel','modelSelect','saveSettings','toast','chips','imageUpload','cameraBtn','fileBtn','fileUpload', 'callBtnHeader','voiceOverlay','voiceOrb','voiceStatus','callTimer','endCallBtn'].forEach(id => els[id] = document.getElementById(id));
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -300,6 +304,7 @@ function renderMessages() {
     if (m.role === 'user') {
       let attachHtml = '';
       if (m.image) attachHtml += `<img src="${m.image}" style="max-width:200px;border-radius:12px;margin-bottom:8px;">`;
+      if (m.fileName) attachHtml += `<div class="attachment-preview">📎 ${escapeHtml(m.fileName)}</div>`;
       return `<div class="msg user">${attachHtml}<div class="bubble">${escapeHtml(m.displayText || m.text)}</div></div>`;
     }
     if (m.role === 'error') return `<div class="msg model error"><div class="bubble">⚠️ ${escapeHtml(m.text)}</div></div>`;
@@ -357,7 +362,7 @@ els.saveSettings.onclick = () => {
   state.provider = p; els.settingsModal.classList.remove('show'); showToast(`Pengaturan disimpan`, 'success');
 };
 
-/* --- WEB SEARCH (TAVILY API) --- */
+/* --- SMART WEB SEARCH --- */
 async function performWebSearch(query) {
   const tavilyKey = localStorage.getItem(LS_TAVILY);
   if (!tavilyKey) {
@@ -372,18 +377,22 @@ async function performWebSearch(query) {
       body: JSON.stringify({
         api_key: tavilyKey,
         query: query,
-        search_depth: "advanced",
-        include_answer: false,
-        max_results: 10 // Kita minta 10 referensi teratas
+        search_depth: "basic",
+        include_answer: true,
+        max_results: 3
       })
     });
 
     const data = await response.json();
+    let context = "";
+    if (data.answer) context += `[RINGKASAN PENCARIAN]:\n${data.answer}\n\n`;
     if (data.results && data.results.length > 0) {
-      // Format hasil pencarian untuk dibaca AI
-      return data.results.map((r, i) => `[Referensi ${i+1}] ${r.title}\nURL: ${r.url}\nIsi: ${r.content}\n`).join('\n');
+      context += data.results.map((r, i) => {
+        const snippet = r.content.substring(0, 500);
+        return `[Referensi ${i+1}] ${r.title}\nURL: ${r.url}\nCuplikan: ${snippet}...\n`;
+      }).join('\n');
     }
-    return null;
+    return context;
   } catch (e) {
     console.warn("Pencarian gagal:", e);
     return null;
@@ -446,24 +455,29 @@ async function callAITextVoice(userText) {
   }
 }
 
-/* --- SEND MESSAGE (DENGAN WEB SEARCH TAVILY) --- */
+/* --- SEND MESSAGE --- */
 async function sendMessage() {
   const text = els.userInput.value.trim();
-  if ((!text && !state.imageBase64) || state.sending) return;
+  if ((!text && !state.imageBase64 && !state.fileText) || state.sending) return;
   if (!state.activeId) createNewChat();
   const chat = getActiveChat();
   
   let finalPrompt = text;
   
   if (state.searchMode && text) {
-    showToast('Mencari 10 referensi web terbaik...', '');
+    showToast('Mencari referensi web...', '');
     const searchContext = await performWebSearch(text);
     if (searchContext) {
-      finalPrompt = `[KONTEKS PENCARIAN WEB TERBARU]:\n${searchContext}\n\nBerdasarkan referensi di atas, jawablah pertanyaan pengguna berikut dengan akurat dan sebutkan sumbernya: ${text}`;
+      finalPrompt = `[KONTEKS PENCARIAN WEB]:\n${searchContext}\n\nBerdasarkan referensi di atas, jawablah: ${text}`;
       showToast('Referensi ditemukan!', 'success');
     } else {
-      showToast('Gagal mencari, menggunakan memori AI.', 'error');
+      showToast('Gagal mencari, pakai memori AI.', 'error');
     }
+  }
+
+  if (state.fileText) {
+    finalPrompt += `\n\n--- ISI DOKUMEN (${state.fileName}) ---\n${state.fileText}\n-----------------------------------`;
+    state.fileText = null; state.fileName = null;
   }
 
   chat.messages.push({ role: 'user', text: finalPrompt, image: state.imageBase64, displayText: text });
@@ -471,7 +485,8 @@ async function sendMessage() {
   saveChats();
   
   els.userInput.value = ''; els.userInput.style.height = 'auto'; state.imageBase64 = null; 
-  els.imageUpload.value = ''; els.sendBtn.disabled = true; renderMessages(); renderChatList();
+  els.imageUpload.value = ''; els.fileUpload.value = '';
+  els.sendBtn.disabled = true; renderMessages(); renderChatList();
   
   state.sending = true; els.welcome.style.display = 'none';
   els.messages.innerHTML += `<div class="msg model" id="thinking-indicator"><div class="bubble typing"><span></span><span></span><span></span></div></div>`;
@@ -495,7 +510,7 @@ async function sendMessage() {
     state.searchMode = false; els.searchBtn.classList.remove('active'); 
   }
 }
-function updateSendBtn() { els.sendBtn.disabled = (!els.userInput.value.trim() && !state.imageBase64) || state.sending; }
+function updateSendBtn() { els.sendBtn.disabled = (!els.userInput.value.trim() && !state.imageBase64 && !state.fileText) || state.sending; }
 
 /* --- VOICE LOGIC --- */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -530,7 +545,24 @@ els.callBtnHeader.onclick = startCall; els.endCallBtn.onclick = endCall; els.new
 els.menuBtn.onclick = () => { els.sidebar.classList.add('open'); els.sidebarOverlay.classList.add('show'); };
 window.closeSidebar = () => { els.sidebar.classList.remove('open'); els.sidebarOverlay.classList.remove('show'); };
 els.closeSidebar.onclick = closeSidebar; els.sidebarOverlay.onclick = closeSidebar;
-els.chips.onclick = (e) => { const chip = e.target.closest('.chip'); if (!chip) return; els.userInput.value = chip.dataset.prompt; els.userInput.focus(); updateSendBtn(); els.userInput.setSelectionRange(els.userInput.value.length, els.userInput.value.length); els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px'; };
+
+els.chips.onclick = (e) => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  els.userInput.value = chip.dataset.prompt;
+  els.userInput.focus();
+  
+  // Jika chip memiliki atribut data-search="true", aktifkan mode search otomatis
+  if (chip.dataset.search === "true") {
+    state.searchMode = true;
+    if(els.searchBtn) els.searchBtn.classList.add('active');
+    sendMessage(); // Langsung kirim
+  } else {
+    updateSendBtn();
+    els.userInput.setSelectionRange(els.userInput.value.length, els.userInput.value.length);
+    els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px';
+  }
+};
 
 els.searchBtn.onclick = () => {
   state.searchMode = !state.searchMode;
@@ -545,6 +577,23 @@ els.searchBtn.onclick = () => {
 
 els.cameraBtn.onclick = () => els.imageUpload.click();
 els.imageUpload.onchange = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { state.imageBase64 = ev.target.result; updateSendBtn(); showToast('Foto siap dikirim.', 'success'); if (!els.userInput.value) els.userInput.value = "Tolong analisis gambar ini."; }; reader.readAsDataURL(file); };
+
+els.fileBtn.onclick = () => els.fileUpload.click();
+els.fileUpload.onchange = async (e) => {
+  const file = e.target.files[0]; if (!file) return; showToast('Membaca file...', '');
+  try {
+    let extractedText = "";
+    if (file.name.endsWith('.pdf')) {
+      const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+      for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const content = await page.getTextContent(); extractedText += content.items.map(item => item.str).join(" ") + "\n"; }
+    } else if (file.name.endsWith('.docx')) {
+      const arrayBuffer = await file.arrayBuffer(); const result = await mammoth.extractRawText({ arrayBuffer }); extractedText = result.value;
+    } else { extractedText = await file.text(); }
+    if (!extractedText || extractedText.trim() === "") throw new Error("Dokumen tidak memiliki teks (mungkin hasil scan).");
+    state.fileText = extractedText; state.fileName = file.name; updateSendBtn(); showToast('File berhasil dibaca.', 'success');
+    if (!els.userInput.value) els.userInput.value = "Tolong rangkum dokumen ini.";
+  } catch (err) { showToast(err.message, 'error'); els.fileUpload.value = ''; }
+};
 
 els.settingsBtn.onclick = openSettings; els.closeSettings.onclick = () => els.settingsModal.classList.remove('show');
 
