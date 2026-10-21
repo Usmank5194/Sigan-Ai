@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Sigan Ai - Document Generator</title>
+<title>Sigan Ai - 4 Layer AI</title>
 <!-- LIBRARY -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -16,12 +16,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 
 <style>
-/* CSS SAMA, TIDAK ADA YANG BERUBAH */
+/* CSS SAMA SEPERTI SEBELUMNYA */
 :root { --bg: #0f0f0f; --surface: #1e1e1e; --surface-hover: #2d2d2d; --text: #f3f4f6; --text-muted: #9ca3af; --primary: #3b82f6; --border: #333333; --danger: #ef4444; }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
-input, textarea { font-family: inherit; outline: none; border: none; background: none; color: inherit; }
+input, textarea, select { font-family: inherit; outline: none; border: none; background: none; color: inherit; }
 .app { display: flex; height: 100vh; height: 100dvh; position: relative; flex-direction: column; }
 .header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; padding-top: max(16px, env(safe-area-inset-top)); background: var(--bg); z-index: 10; }
 .header-title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
@@ -47,7 +47,6 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 .msg.error .bubble { color: var(--danger); background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 12px; font-size: 14px; }
 .attachment-preview { display: flex; align-items: center; gap: 8px; background: var(--surface-hover); padding: 8px 12px; border-radius: 10px; margin-bottom: 8px; font-size: 13px; width: fit-content; }
 .attachment-preview img { max-width: 100px; border-radius: 6px; }
-.attachment-preview .file-icon { font-size: 20px; }
 .bubble h1, .bubble h2, .bubble h3 { margin: 16px 0 8px; font-weight: 600; color: #fff; }
 .bubble p { margin-bottom: 12px; }
 .bubble ul, .bubble ol { margin-bottom: 12px; padding-left: 24px; }
@@ -144,9 +143,9 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
   <div class="chat-area" id="chatArea">
     <div class="welcome" id="welcome">
-      <div class="welcome-logo">👻</div>
-      <h2>Selamat Datang, Usman</h2>
-      <p>Sigan Ai sekarang bisa membuat file, membaca dokumen, dan memotret langsung.</p>
+      <div class="welcome-logo">🛡️</div>
+      <h2>Sigan Ai - 4 Layer</h2>
+      <p>Groq, Gemini, LLM7, & NVIDIA siap melayani Anda tanpa henti.</p>
     </div>
     <div class="messages" id="messages"></div>
   </div>
@@ -200,13 +199,15 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
-    <div class="modal-head"><h3>⚙️ Pengaturan</h3><button class="icon-btn" id="closeSettings">×</button></div>
+    <div class="modal-head"><h3>⚙️ Pengaturan AI</h3><button class="icon-btn" id="closeSettings">×</button></div>
     <div class="modal-body">
       <div class="form-group">
-        <label>Penyedia AI (Provider)</label>
+        <label>Pilih Lapisan AI (Provider)</label>
         <select id="providerSelect">
-          <option value="groq">Groq - GPT OSS (Teks & File)</option>
-          <option value="gemini">Google Gemini (Bisa Lihat Gambar)</option>
+          <option value="groq">1. Groq (Super Cepat & Stabil)</option>
+          <option value="gemini">2. Google Gemini (Analisis Gambar)</option>
+          <option value="llm7">3. LLM7.io (DeepSeek & GPT)</option>
+          <option value="nvidia">4. NVIDIA NIM (DeepSeek Jenius)</option>
         </select>
       </div>
       <div class="form-group">
@@ -225,19 +226,16 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
 <script>
 /* ============================================================
-   SIGAN AI v16.2 - Anti TPM Limit (Text Chunking)
+   SIGAN AI v17.0 - 4 Layer Defense (Groq, Gemini, LLM7, NVIDIA)
    ============================================================ */
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
 const LS_CHATS = 'sigan_chats_v4';
 const LS_PROVIDER = 'sigan_provider';
-const LS_GEMINI_KEY = 'sigan_gemini_key';
-const LS_GEMINI_MODEL = 'sigan_gemini_model';
-const LS_GROQ_KEY = 'sigan_groq_key';
-const LS_GROQ_MODEL = 'sigan_groq_model';
+const MAX_MEMORY_MESSAGES = 10; // Ingatan jangka pendek
 
-const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa. Karakter: Ramah, cerdas, dan profesional.`;
+const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa. Karakter: Ramah, cerdas, dan profesional. Jawab dengan format Markdown yang rapi.`;
 
 const state = { chats: [], activeId: null, sending: false, imageBase64: null, fileText: null, fileName: null, provider: 'groq' };
 let callState = { active: false, timer: null, seconds: 0, isSpeaking: false, isProcessing: false };
@@ -248,7 +246,7 @@ const els = {};
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-/* --- MARKDOWN --- */
+/* --- MARKDOWN RENDERER --- */
 function renderMarkdown(text) {
   let s = escapeHtml(text);
   s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => `<div class="code-container"><button class="copy-btn" onclick="copyCode(this)">Salin</button><pre><code>${code.replace(/\n$/, '')}</code></pre></div>`);
@@ -261,8 +259,7 @@ function renderMarkdown(text) {
       const cells = line.split('|').filter((c, i, arr) => i > 0 && i < arr.length - 1);
       table += '<tr>';
       for (const cell of cells) table += isHeader ? `<th>${cell.trim()}</th>` : `<td>${cell.trim()}</td>`;
-      table += '</tr>';
-      isHeader = false;
+      table += '</tr>'; isHeader = false;
     }
     table += '</table>'; return table;
   });
@@ -321,96 +318,162 @@ function renderMessages() {
   els.chatArea.scrollTop = els.chatArea.scrollHeight;
 }
 
-/* --- DOWNLOAD --- */
+/* --- DOWNLOAD FILE --- */
 window.downloadPDF = function(btn) { const bubble = btn.closest('.bubble'); btn.closest('.action-toolbar').style.display = 'none'; const opt = { margin: 10, filename: 'SiganAI.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } }; const clone = bubble.cloneNode(true); clone.style.color = '#000'; clone.style.background = '#fff'; html2pdf().set(opt).from(clone).save().then(() => { btn.closest('.action-toolbar').style.display = 'flex'; }); };
 window.downloadWord = function(btn) { const bubble = btn.closest('.bubble'); const clone = bubble.cloneNode(true); clone.querySelector('.action-toolbar').remove(); const blob = htmlDocx.asBlob(`<html><body>${clone.innerHTML}</body></html>`); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'SiganAI.docx'; a.click(); };
 window.downloadExcel = function(btn) { const table = btn.closest('.bubble').querySelector('table'); if (!table) { showToast('Tidak ada tabel.', 'error'); return; } const wb = XLSX.utils.table_to_book(table); XLSX.writeFile(wb, 'SiganAI.xlsx'); };
 window.downloadPPT = function(encodedText) { const text = decodeURIComponent(encodedText); let pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_16x9'; const slides = text.split(/\n\s*---\s*\n/); slides.forEach((slideText) => { let lines = slideText.trim().split('\n').filter(l => l.trim()); if (lines.length === 0) return; let slide = pptx.addSlide(); let title = ""; let bullets = []; lines.forEach(line => { if (line.startsWith('#')) title = line.replace(/#/g, '').trim(); else if (line.startsWith('-') || line.startsWith('*')) bullets.push({ text: line.replace(/^[-*]\s*/, '').trim(), options: { bullet: true } }); else { if (!title) title = line.trim(); else bullets.push({ text: line.trim(), options: { bullet: false } }); } }); slide.background = { color: "0F0F0F" }; slide.addText(title || "Slide", { x: 0.5, y: 0.5, w: '90%', h: 1, fontSize: 28, bold: true, color: "3b82f6" }); if (bullets.length > 0) slide.addText(bullets, { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: "E5E5E5" }); }); pptx.writeFile({ fileName: "SiganAI.pptx" }); };
 
-/* --- SETTINGS --- */
-const GEMINI_MODELS = [ { id: 'gemini-flash-latest', name: 'Gemini Flash Latest' } ];
-const GROQ_MODELS = [ { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B' }, { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B' } ];
-function updateSettingsUI() { const p = els.providerSelect.value; els.apiKeyInput.value = p === 'gemini' ? (localStorage.getItem(LS_GEMINI_KEY)||'') : (localStorage.getItem(LS_GROQ_KEY)||''); if (p === 'gemini') { els.apiKeyLabel.textContent = 'API Key Gemini'; els.modelSelect.innerHTML = GEMINI_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join(''); els.modelSelect.value = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest'; } else { els.apiKeyLabel.textContent = 'API Key Groq'; els.modelSelect.innerHTML = GROQ_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join(''); els.modelSelect.value = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b'; } }
+/* --- SETTINGS & 4 LAYERS --- */
+const MODELS = {
+  groq: [
+    { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B (Pintar)' },
+    { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B (Cepat)' }
+  ],
+  gemini: [
+    { id: 'gemini-flash-latest', name: 'Gemini Flash Latest' }
+  ],
+  llm7: [
+    { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+    { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+    { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite' }
+  ],
+  nvidia: [
+    { id: 'deepseek-ai/deepseek-v4.1-flash', name: 'DeepSeek V4.1 Flash (Jenius)' },
+    { id: 'meta/llama-3.3-70b-instruct', name: 'Llama 3.3 70B' }
+  ]
+};
+
+const PLACEHOLDERS = {
+  groq: 'gsk_...', gemini: 'AIzaSy...', llm7: 'sk-...', nvidia: 'nvapi-...'
+};
+
+function updateSettingsUI() {
+  const p = els.providerSelect.value;
+  els.apiKeyLabel.textContent = `API Key ${p.toUpperCase()}`;
+  els.apiKeyInput.placeholder = PLACEHOLDERS[p];
+  els.apiKeyInput.value = localStorage.getItem(`sigan_${p}_key`) || '';
+  
+  els.modelLabel.textContent = `Model ${p.toUpperCase()}`;
+  els.modelSelect.innerHTML = MODELS[p].map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  els.modelSelect.value = localStorage.getItem(`sigan_${p}_model`) || MODELS[p][0].id;
+}
+
 els.providerSelect.onchange = updateSettingsUI;
 window.openSettings = () => { els.providerSelect.value = state.provider; updateSettingsUI(); els.settingsModal.classList.add('show'); };
-els.saveSettings.onclick = () => { const p = els.providerSelect.value; const key = els.apiKeyInput.value.trim(); if (!key) { showToast('API Key kosong', 'error'); return; } localStorage.setItem(LS_PROVIDER, p); if (p === 'gemini') { localStorage.setItem(LS_GEMINI_KEY, key); localStorage.setItem(LS_GEMINI_MODEL, els.modelSelect.value); } else { localStorage.setItem(LS_GROQ_KEY, key); localStorage.setItem(LS_GROQ_MODEL, els.modelSelect.value); } state.provider = p; els.settingsModal.classList.remove('show'); showToast('Disimpan', 'success'); };
+els.saveSettings.onclick = () => {
+  const p = els.providerSelect.value; const key = els.apiKeyInput.value.trim();
+  if (!key) { showToast('API Key tidak boleh kosong', 'error'); return; }
+  localStorage.setItem(LS_PROVIDER, p);
+  localStorage.setItem(`sigan_${p}_key`, key);
+  localStorage.setItem(`sigan_${p}_model`, els.modelSelect.value);
+  state.provider = p;
+  els.settingsModal.classList.remove('show');
+  showToast(`Beralih ke ${p.toUpperCase()}`, 'success');
+};
 
-/* --- API FETCH --- */
+/* --- API FETCH LOGIC --- */
 async function fetchWithRetry(url, options) {
   for (let i=0; i<3; i++) {
     const res = await fetch(url, options);
     if (res.status === 429) { await new Promise(r => setTimeout(r, 2000)); continue; }
-    if (!res.ok) throw new Error('Gagal terhubung');
+    if (!res.ok) throw new Error('Gagal terhubung ke API');
     return res;
   }
-  throw new Error('Kuota habis');
+  throw new Error('Kuota API habis.');
 }
+
+/* Generic OpenAI Format Caller (Untuk Groq, LLM7, NVIDIA) */
+async function callOpenAICompatibleStreaming(url, apiKey, model, messages, onChunk) {
+  const recentMessages = messages.slice(-MAX_MEMORY_MESSAGES);
+  const chatMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...recentMessages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))];
+  
+  const response = await fetchWithRetry(url, { 
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, 
+    body: JSON.stringify({ model, messages: chatMessages, stream: true }) 
+  });
+  
+  const reader = response.body.getReader(); const decoder = new TextDecoder("utf-8"); let fullText = "";
+  while (true) { 
+    const { done, value } = await reader.read(); if (done) break; 
+    const chunk = decoder.decode(value, { stream: true }); 
+    for (const line of chunk.split("\n")) { 
+      if (line.startsWith("data: ")) { 
+        const dataStr = line.slice(6); if (dataStr === "[DONE]") break; 
+        try { const data = JSON.parse(dataStr); const text = data.choices?.[0]?.delta?.content || ""; if (text) { fullText += text; onChunk(fullText); } } catch (e) {} 
+      } 
+    } 
+  }
+  return fullText;
+}
+
+/* Gemini Khusus (Karena beda format) */
 async function callGeminiStreaming(messages, onChunk) {
-  const apiKey = localStorage.getItem(LS_GEMINI_KEY); const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
-  const contents = messages.map(m => { const parts = [{ text: m.text }]; if (m.image) parts.push({ inlineData: { mimeType: "image/jpeg", data: m.image.split(',')[1] } }); return { role: m.role === 'model' ? 'model' : 'user', parts }; });
+  const apiKey = localStorage.getItem('sigan_gemini_key'); const model = localStorage.getItem('sigan_gemini_model') || 'gemini-flash-latest';
+  const recentMessages = messages.slice(-MAX_MEMORY_MESSAGES);
+  const contents = recentMessages.map(m => { const parts = [{ text: m.text }]; if (m.image) parts.push({ inlineData: { mimeType: "image/jpeg", data: m.image.split(',')[1] } }); return { role: m.role === 'model' ? 'model' : 'user', parts }; });
   const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } }) });
   const reader = response.body.getReader(); const decoder = new TextDecoder("utf-8"); let fullText = "";
   while (true) { const { done, value } = await reader.read(); if (done) break; const chunk = decoder.decode(value, { stream: true }); for (const line of chunk.split("\n")) { if (line.startsWith("data: ")) { const dataStr = line.slice(6); if (dataStr === "[DONE]") break; try { const data = JSON.parse(dataStr); const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ""; if (text) { fullText += text; onChunk(fullText); } } catch (e) {} } } }
   return fullText;
 }
-async function callGroqStreaming(messages, onChunk) {
-  const apiKey = localStorage.getItem(LS_GROQ_KEY); const model = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
-  const chatMessages = [{ role: 'system', content: SYSTEM_PROMPT }, ...messages.map(m => ({ role: m.role === 'model' ? 'assistant' : 'user', content: m.text }))];
-  const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model, messages: chatMessages, stream: true }) });
-  const reader = response.body.getReader(); const decoder = new TextDecoder("utf-8"); let fullText = "";
-  while (true) { const { done, value } = await reader.read(); if (done) break; const chunk = decoder.decode(value, { stream: true }); for (const line of chunk.split("\n")) { if (line.startsWith("data: ")) { const dataStr = line.slice(6); if (dataStr === "[DONE]") break; try { const data = JSON.parse(dataStr); const text = data.choices?.[0]?.delta?.content || ""; if (text) { fullText += text; onChunk(fullText); } } catch (e) {} } } }
-  return fullText;
+
+async function callAIStreaming(messages, onChunk) {
+  if (state.provider === 'gemini') return callGeminiStreaming(messages, onChunk);
+  if (state.provider === 'groq') {
+    return callOpenAICompatibleStreaming('https://api.groq.com/openai/v1/chat/completions', localStorage.getItem('sigan_groq_key'), localStorage.getItem('sigan_groq_model') || 'openai/gpt-oss-120b', messages, onChunk);
+  }
+  if (state.provider === 'llm7') {
+    return callOpenAICompatibleStreaming('https://api.llm7.io/v1/chat/completions', localStorage.getItem('sigan_llm7_key'), localStorage.getItem('sigan_llm7_model') || 'gpt-4o-mini', messages, onChunk);
+  }
+  if (state.provider === 'nvidia') {
+    return callOpenAICompatibleStreaming('https://integrate.api.nvidia.com/v1/chat/completions', localStorage.getItem('sigan_nvidia_key'), localStorage.getItem('sigan_nvidia_model') || 'deepseek-ai/deepseek-v4.1-flash', messages, onChunk);
+  }
 }
-async function callAIStreaming(messages, onChunk) { return state.provider === 'gemini' ? callGeminiStreaming(messages, onChunk) : callGroqStreaming(messages, onChunk); }
+
+/* --- VOICE CALL API --- */
 async function callAITextVoice(userText) {
   if (state.provider === 'gemini') {
-    const apiKey = localStorage.getItem(LS_GEMINI_KEY); const model = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
+    const apiKey = localStorage.getItem('sigan_gemini_key'); const model = localStorage.getItem('sigan_gemini_model') || 'gemini-flash-latest';
     const response = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: userText }] }], systemInstruction: { parts: [{ text: "Jawab maksimal 2 kalimat." }] }, generationConfig: { maxOutputTokens: 100 } }) });
     const data = await response.json(); return data.candidates?.[0]?.content?.parts?.[0]?.text || "Oke.";
   } else {
-    const apiKey = localStorage.getItem(LS_GROQ_KEY); const model = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
-    const response = await fetchWithRetry('https://api.groq.com/openai/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify({ model, messages: [{ role: 'system', content: "Jawab maksimal 2 kalimat." }, { role: 'user', content: userText }], max_tokens: 100 }) });
+    let url, key, model;
+    if (state.provider === 'groq') { url = 'https://api.groq.com/openai/v1/chat/completions'; key = localStorage.getItem('sigan_groq_key'); model = localStorage.getItem('sigan_groq_model') || 'openai/gpt-oss-120b'; }
+    else if (state.provider === 'llm7') { url = 'https://api.llm7.io/v1/chat/completions'; key = localStorage.getItem('sigan_llm7_key'); model = localStorage.getItem('sigan_llm7_model') || 'gpt-4o-mini'; }
+    else if (state.provider === 'nvidia') { url = 'https://integrate.api.nvidia.com/v1/chat/completions'; key = localStorage.getItem('sigan_nvidia_key'); model = localStorage.getItem('sigan_nvidia_model') || 'deepseek-ai/deepseek-v4.1-flash'; }
+    
+    const response = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify({ model, messages: [{ role: 'system', content: "Jawab maksimal 2 kalimat." }, { role: 'user', content: userText }], max_tokens: 100 }) });
     const data = await response.json(); return data.choices?.[0]?.message?.content || "Oke.";
   }
 }
 
-/* --- FUNGSI CHUNKING (PEMOTONG TEKS) --- */
+/* --- CHUNKING & SEND MESSAGE --- */
 function chunkText(text, maxLength = 4000) {
-  const chunks = [];
-  let currentChunk = "";
-  const sentences = text.split(/(?<=[.?!])\s+/);
+  const chunks = []; let currentChunk = ""; const sentences = text.split(/(?<=[.?!])\s+/);
   for (const sentence of sentences) {
-    if ((currentChunk + sentence).length > maxLength) {
-      if (currentChunk) chunks.push(currentChunk);
-      currentChunk = sentence;
-    } else {
-      currentChunk += (currentChunk ? " " : "") + sentence;
-    }
+    if ((currentChunk + sentence).length > maxLength) { if (currentChunk) chunks.push(currentChunk); currentChunk = sentence; } 
+    else { currentChunk += (currentChunk ? " " : "") + sentence; }
   }
   if (currentChunk) chunks.push(currentChunk);
   return chunks;
 }
 
-/* --- SEND MESSAGE (DENGAN CHUNKING) --- */
 async function sendMessage() {
   const text = els.userInput.value.trim();
   if ((!text && !state.imageBase64 && !state.fileText) || state.sending) return;
   if (!state.activeId) createNewChat();
   const chat = getActiveChat();
   
-  let finalPrompt = text;
-  let isChunked = false;
-
+  let finalPrompt = text; let isChunked = false;
   if (state.fileText) {
     const chunks = chunkText(state.fileText, 4000);
     if (chunks.length > 1) {
       finalPrompt += `\n\n--- ISI DOKUMEN (${state.fileName}) ---\n[Dokumen Terlalu Panjang. Merangkum Bagian 1 dari ${chunks.length}...]\n${chunks[0]}\n-----------------------------------`;
-      isChunked = true;
-      state.fileText = chunks.slice(1).join(" "); // Simpan sisa untuk dikirim nanti
+      isChunked = true; state.fileText = chunks.slice(1).join(" "); 
     } else {
       finalPrompt += `\n\n--- ISI DOKUMEN (${state.fileName}) ---\n${state.fileText}\n-----------------------------------`;
-      state.fileText = null;
-      state.fileName = null;
+      state.fileText = null; state.fileName = null;
     }
   }
 
@@ -436,11 +499,7 @@ async function sendMessage() {
       replyBubble.querySelector('.bubble').innerHTML = renderMarkdown(currentText); els.chatArea.scrollTop = els.chatArea.scrollHeight;
     });
     chat.messages.push({ role: 'model', text: fullReply, ts: Date.now() });
-    
-    // Jika dokumen masih ada sisa potongan, tanya user
-    if (isChunked) {
-      showToast('Bagian 1 selesai. Ketik "Lanjut" untuk merangkum bagian berikutnya.', 'success');
-    }
+    if (isChunked) showToast('Bagian 1 selesai. Ketik "Lanjut" untuk merangkum bagian berikutnya.', 'success');
   } catch (e) {
     const indicator = document.getElementById('thinking-indicator'); if (indicator) indicator.remove();
     chat.messages.push({ role: 'error', text: e.message, ts: Date.now() });
@@ -450,7 +509,7 @@ async function sendMessage() {
 }
 function updateSendBtn() { els.sendBtn.disabled = (!els.userInput.value.trim() && !state.imageBase64 && !state.fileText) || state.sending; }
 
-/* --- VOICE & EVENTS (SAMA SEPERTI SEBELUMNYA) --- */
+/* --- VOICE LOGIC --- */
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition; let synth = window.speechSynthesis;
 if (SpeechRecognition) {
@@ -475,6 +534,7 @@ function startListening() { if (!callState.active || callState.isSpeaking || cal
 function startCall() { if (!SpeechRecognition || !synth) { showToast('Browser tidak mendukung suara.', 'error'); return; } els.voiceOverlay.classList.add('active'); callState.active = true; callState.seconds = 0; callState.isSpeaking = false; callState.isProcessing = false; els.voiceStatus.textContent = 'Menyambungkan...'; els.voiceOrb.className = 'orb'; clearInterval(callState.timer); callState.timer = setInterval(() => { callState.seconds++; const m = String(Math.floor(callState.seconds / 60)).padStart(2, '0'); const s = String(callState.seconds % 60).padStart(2, '0'); els.callTimer.textContent = `${m}:${s}`; }, 1000); setTimeout(() => { speakText("Halo, ada yang bisa saya bantu?"); }, 500); }
 function endCall() { callState.active = false; clearInterval(callState.timer); synth.cancel(); if(recognition) recognition.abort(); els.voiceOverlay.classList.remove('active'); els.callTimer.textContent = '00:00'; }
 
+/* --- EVENTS --- */
 els.sendBtn.onclick = sendMessage;
 els.userInput.oninput = () => { els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px'; updateSendBtn(); };
 els.userInput.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
@@ -484,53 +544,34 @@ window.closeSidebar = () => { els.sidebar.classList.remove('open'); els.sidebarO
 els.closeSidebar.onclick = closeSidebar; els.sidebarOverlay.onclick = closeSidebar;
 els.chips.onclick = (e) => { const chip = e.target.closest('.chip'); if (!chip) return; els.userInput.value = chip.dataset.prompt; els.userInput.focus(); updateSendBtn(); els.userInput.setSelectionRange(els.userInput.value.length, els.userInput.value.length); els.userInput.style.height = 'auto'; els.userInput.style.height = (els.userInput.scrollHeight) + 'px'; };
 
+/* UPLOAD FILE & KAMERA */
 els.cameraBtn.onclick = () => els.imageUpload.click();
 els.imageUpload.onchange = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (ev) => { state.imageBase64 = ev.target.result; updateSendBtn(); showToast('Foto siap dikirim.', 'success'); if (!els.userInput.value) els.userInput.value = "Tolong analisis gambar ini."; }; reader.readAsDataURL(file); };
 
 els.fileBtn.onclick = () => els.fileUpload.click();
 els.fileUpload.onchange = async (e) => {
-  const file = e.target.files[0]; if (!file) return;
-  showToast('Membaca file...', '');
+  const file = e.target.files[0]; if (!file) return; showToast('Membaca file...', '');
   try {
     let extractedText = "";
     if (file.name.endsWith('.pdf')) {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        extractedText += content.items.map(item => item.str).join(" ") + "\n";
-      }
+      const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+      for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const content = await page.getTextContent(); extractedText += content.items.map(item => item.str).join(" ") + "\n"; }
     } else if (file.name.endsWith('.docx')) {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      extractedText = result.value;
-    } else {
-      extractedText = await file.text();
-    }
-
-    if (!extractedText || extractedText.trim() === "") {
-      throw new Error("Dokumen ini tidak memiliki teks yang bisa dibaca (mungkin hasil scan/foto). Silakan ketik manual atau gunakan PDF dari Word.");
-    }
-
-    state.fileText = extractedText;
-    state.fileName = file.name;
-    updateSendBtn();
-    showToast('File berhasil dibaca.', 'success');
+      const arrayBuffer = await file.arrayBuffer(); const result = await mammoth.extractRawText({ arrayBuffer }); extractedText = result.value;
+    } else { extractedText = await file.text(); }
+    if (!extractedText || extractedText.trim() === "") throw new Error("Dokumen tidak memiliki teks (mungkin hasil scan).");
+    state.fileText = extractedText; state.fileName = file.name; updateSendBtn(); showToast('File berhasil dibaca.', 'success');
     if (!els.userInput.value) els.userInput.value = "Tolong rangkum dokumen ini.";
-  } catch (err) {
-    showToast(err.message, 'error');
-    els.fileUpload.value = '';
-  }
+  } catch (err) { showToast(err.message, 'error'); els.fileUpload.value = ''; }
 };
 
 els.settingsBtn.onclick = openSettings; els.closeSettings.onclick = () => els.settingsModal.classList.remove('show');
 
+/* --- INIT --- */
 state.provider = localStorage.getItem(LS_PROVIDER) || 'groq';
 loadChats();
 if (state.chats.length > 0) { state.activeId = state.chats[0].id; renderMessages(); }
 renderChatList();
-if (!localStorage.getItem(LS_GEMINI_KEY) && !localStorage.getItem(LS_GROQ_KEY)) { setTimeout(openSettings, 500); }
 </script>
 </body>
 </html>
