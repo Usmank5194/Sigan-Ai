@@ -215,7 +215,7 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
     <div class="modal-body">
       <div class="form-group"><label>API Key Gemini</label><input type="password" id="apiKeyInput"></div>
       <div class="form-group">
-        <label>Model AI (Pilih Flash untuk tercepat)</label>
+        <label>Model AI (Pilih Flash untuk tercepat & kuota besar)</label>
         <select id="modelSelect">
           <option value="gemini-flash-latest">Gemini Flash Latest (Sangat Cepat)</option>
           <option value="gemini-pro-latest">Gemini Pro Latest (Lebih Lambat)</option>
@@ -229,7 +229,7 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
 <script>
 /* ============================================================
-   SIGAN AI v11.0 - Final Stable Release (Fixed Chips & Chat)
+   SIGAN AI v12.0 - Auto Retry (Exponential Backoff) & Stable
    ============================================================ */
 
 const LS_CHATS = 'sigan_chats_v4';
@@ -326,7 +326,42 @@ function renderMessages() {
   els.chatArea.scrollTop = els.chatArea.scrollHeight;
 }
 
-/* API UNTUK CHAT (STREAMING) - BIAR GA KELIATAN LEMOT */
+/* ============================================================
+   API DENGAN AUTO-RETRY (EXPONENTIAL BACKOFF)
+   ============================================================ */
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      const response = await fetch(url, options);
+      if (response.status === 429) {
+        attempt++;
+        if (attempt >= maxRetries) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error?.message || 'Kuota habis. Ganti model ke Flash atau tunggu sebentar.');
+        }
+        const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`[Rate Limit] Menunggu ${waitTime}ms sebelum mencoba lagi...`);
+        els.toast.textContent = `Kuota penuh, mencoba lagi dalam ${waitTime/1000} detik...`;
+        els.toast.className = 'toast show';
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        els.toast.classList.remove('show');
+        continue;
+      }
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP Error: ${response.status}`);
+      }
+      return response;
+    } catch (error) {
+      if (attempt >= maxRetries - 1) throw error;
+      attempt++;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+    }
+  }
+}
+
+/* API UNTUK CHAT (STREAMING) */
 async function callGeminiStreaming(messages, onChunk) {
   const apiKey = localStorage.getItem(LS_API);
   const model = localStorage.getItem(LS_MODEL) || 'gemini-flash-latest';
@@ -343,15 +378,10 @@ async function callGeminiStreaming(messages, onChunk) {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
   
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents, systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] } })
   });
-
-  if (!response.ok) {
-    if (response.status === 429) throw new Error('Kuota habis. Ganti model ke Flash atau tunggu sebentar.');
-    throw new Error('Gagal menghubungi server.');
-  }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
@@ -382,15 +412,16 @@ async function callGeminiTextVoice(userText) {
   const apiKey = localStorage.getItem(LS_API);
   const model = localStorage.getItem(LS_MODEL) || 'gemini-flash-latest';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const response = await fetch(url, {
+  
+  const response = await fetchWithRetry(url, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ 
       contents: [{ role: 'user', parts: [{ text: userText }] }], 
       systemInstruction: { parts: [{ text: VOICE_PROMPT }] },
-      generationConfig: { maxOutputTokens: 100 } // Cukup untuk 2 kalimat
+      generationConfig: { maxOutputTokens: 100 }
     })
   });
-  if (!response.ok) throw new Error('Koneksi gagal');
+
   const data = await response.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "Oke.";
 }
@@ -467,7 +498,7 @@ if (SpeechRecognition) {
 
     callState.isProcessing = true;
     els.voiceOrb.className = 'orb'; els.voiceStatus.textContent = 'Memproses...';
-    recognition.abort(); // Matikan mic saat mikir
+    recognition.abort();
 
     try {
       const reply = await callGeminiTextVoice(transcript);
@@ -537,7 +568,7 @@ els.menuBtn.onclick = () => { els.sidebar.classList.add('open'); els.sidebarOver
 window.closeSidebar = () => { els.sidebar.classList.remove('open'); els.sidebarOverlay.classList.remove('show'); };
 els.closeSidebar.onclick = closeSidebar; els.sidebarOverlay.onclick = closeSidebar;
 
-/* CHIPS LOGIC (FIXED) */
+/* CHIPS LOGIC */
 els.chips.onclick = (e) => {
   const chip = e.target.closest('.chip');
   if (!chip) return;
