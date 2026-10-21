@@ -6,7 +6,13 @@
 <meta name="theme-color" content="#0f0f0f">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Sigan Ai - Multi AI</title>
+<title>Sigan Ai - Document Generator</title>
+<!-- LIBRARY UNTUK DOWNLOAD FILE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html-docx-js/dist/html-docx.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
 <style>
 :root {
   --bg: #0f0f0f;
@@ -61,12 +67,20 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 .bubble li { margin-bottom: 6px; }
 .bubble strong { font-weight: 600; color: #fff; }
 .bubble code { background: #2d2d2d; padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 13px; color: #a78bfa; }
+.bubble table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+.bubble th, .bubble td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+.bubble th { background: var(--surface-hover); font-weight: 600; }
 .code-container { position: relative; margin: 16px 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
 .bubble pre { background: #000; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5; color: #e5e5e5; }
 .bubble pre code { background: none; padding: 0; color: inherit; font-family: ui-monospace, monospace; }
 .copy-btn { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.1); color: #ccc; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; transition: 0.2s; }
 .copy-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
 .copy-btn.copied { background: #10b981; color: #fff; }
+
+/* ACTION BUTTONS (DOWNLOAD) */
+.action-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.dl-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; font-weight: 500; transition: 0.2s; }
+.dl-btn:hover { background: var(--surface-hover); border-color: #555; }
 
 /* LOADING DOTS */
 .typing { display: flex; gap: 4px; padding: 8px 0; }
@@ -155,19 +169,18 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
   <div class="chat-area" id="chatArea">
     <div class="welcome" id="welcome">
       <div class="welcome-logo">👻</div>
-      <h2>Selamat Datang, Usman</h2>
-      <p>Ada yang bisa saya bantu hari ini?</p>
+      <h2>Selamat Datang, Pindu'</h2>
+      <p>Sigan Ai sekarang bisa membuat file PDF, Word, Excel, dan PPT.</p>
     </div>
     <div class="messages" id="messages"></div>
   </div>
 
   <div class="input-wrapper">
     <div class="chips-container" id="chips">
-      <button class="chip" data-prompt="Bantu saya membuat kode program / website untuk: "><span>💻</span> Pengembangan Web</button>
-      <button class="chip" data-prompt="Buatkan kerangka presentasi (PPT) mengenai topik: "><span>📊</span> PPT</button>
+      <button class="chip" data-prompt="Buatkan laporan kegiatan penyuluhan KB dalam format lengkap: "><span>📄</span> Buat Laporan</button>
+      <button class="chip" data-prompt="Buatkan struktur presentasi (PPT) beserta isi slide-nya tentang: "><span>📽️</span> Buat PPT</button>
+      <button class="chip" data-prompt="Buatkan tabel data Excel tentang: "><span>📊</span> Buat Excel</button>
       <button class="chip" data-prompt="Tolong terjemahkan teks berikut: "><span>🌐</span> Terjemahkan</button>
-      <button class="chip" data-prompt="Tolong rangkum dokumen berikut: "><span>📄</span> Baca File</button>
-      <button class="chip" data-prompt="Beri rekomendasi prompt foto produk untuk: "><span>📸</span> Foto Produk</button>
     </div>
 
     <div class="input-box">
@@ -212,13 +225,13 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
       <div class="form-group">
         <label>Penyedia AI (Provider)</label>
         <select id="providerSelect">
-          <option value="gemini">Google Gemini</option>
           <option value="groq">Groq - GPT OSS (Kuota Besar)</option>
+          <option value="gemini">Google Gemini</option>
         </select>
       </div>
       <div class="form-group">
-        <label id="apiKeyLabel">API Key Gemini</label>
-        <input type="password" id="apiKeyInput" placeholder="AIzaSy...">
+        <label id="apiKeyLabel">API Key Groq (gsk_...)</label>
+        <input type="password" id="apiKeyInput" placeholder="gsk_...">
       </div>
       <div class="form-group">
         <label id="modelLabel">Model AI</label>
@@ -232,7 +245,7 @@ input, textarea { font-family: inherit; outline: none; border: none; background:
 
 <script>
 /* ============================================================
-   SIGAN AI v14.0 - Updated Groq Models (GPT-OSS)
+   SIGAN AI v15.0 - Document Generator (PDF, Word, Excel, PPT)
    ============================================================ */
 
 const LS_CHATS = 'sigan_chats_v4';
@@ -242,12 +255,26 @@ const LS_GEMINI_MODEL = 'sigan_gemini_model';
 const LS_GROQ_KEY = 'sigan_groq_key';
 const LS_GROQ_MODEL = 'sigan_groq_model';
 
-const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa yang dikembangkan oleh Usman Hasan.
-Karakter: Ramah, cerdas, jujur, dan modern. Selalu jawab dengan format Markdown yang rapi.`;
+// SYSTEM PROMPT DIPERBARUI UNTUK FORMAT FILE
+const SYSTEM_PROMPT = `Anda adalah "Sigan Ai", asisten AI cerdas serba bisa.
+Karakter: Ramah, cerdas, dan profesional.
 
-const VOICE_PROMPT = `Anda Sigan Ai. Jawablah dengan SANGAT SINGKAT, maksimal 2 kalimat. Jangan gunakan markdown. Langsung jawab intinya saja seperti sedang menelepon.`;
+## ATURAN FORMAT FILE:
+1. Jika pengguna meminta LAPORAN (PDF/Word): Gunakan format Markdown yang rapi. Berikan judul dengan (#), sub-judul (##), dan paragraf yang jelas.
+2. Jika pengguna meminta DATA/TABEL (Excel): WAJIB gunakan format tabel Markdown (menggunakan pipa |). Jangan berikan teks panjang, fokus pada tabel.
+3. Jika pengguna meminta PPT/Presentasi: Pisahkan setiap slide dengan tiga garis minus (---). Gunakan judul slide dengan (#) dan poin-poin dengan (-).
+Contoh format PPT:
+# Judul Slide 1
+- Poin pertama
+- Poin kedua
+---
+# Judul Slide 2
+- Poin pertama
+- Poin kedua`;
 
-const state = { chats: [], activeId: null, sending: false, imageBase64: null, provider: 'gemini' };
+const VOICE_PROMPT = `Anda Sigan Ai. Jawablah dengan SANGAT SINGKAT, maksimal 2 kalimat. Jangan gunakan markdown. Langsung jawab intinya saja.`;
+
+const state = { chats: [], activeId: null, sending: false, imageBase64: null, provider: 'groq' };
 let callState = { active: false, timer: null, seconds: 0, isSpeaking: false, isProcessing: false };
 
 const els = {};
@@ -260,6 +287,7 @@ const els = {};
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+/* --- MARKDOWN PARSER (Tabel ditambahkan) --- */
 function renderMarkdown(text) {
   let s = escapeHtml(text);
   const codeBlocks = [];
@@ -268,10 +296,32 @@ function renderMarkdown(text) {
     codeBlocks.push(`<div class="code-container"><button class="copy-btn" onclick="copyCode(this)">Salin</button><pre><code>${code.replace(/\n$/, '')}</code></pre></div>`);
     return `\u0000CB${i}\u0000`;
   });
+  
+  // Tabel Markdown
+  s = s.replace(/((?:\|.*\|(?:\r?\n|$))+)/g, (match) => {
+    const lines = match.trim().split('\n');
+    if (lines.length < 2 || !lines[0].includes('-')) return match;
+    let table = '<table>';
+    let isHeader = true;
+    for (const line of lines) {
+      if (line.includes('---')) { isHeader = false; continue; }
+      const cells = line.split('|').filter((c, i, arr) => i > 0 && i < arr.length - 1);
+      table += '<tr>';
+      for (const cell of cells) {
+        table += isHeader ? `<th>${cell.trim()}</th>` : `<td>${cell.trim()}</td>`;
+      }
+      table += '</tr>';
+      isHeader = false;
+    }
+    table += '</table>';
+    return table;
+  });
+
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
   s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  
   const lines = s.split('\n'); let inList = false, out = [];
   for (const line of lines) {
     const m = line.match(/^\s*[-*]\s+(.+)$/);
@@ -282,6 +332,7 @@ function renderMarkdown(text) {
   s = out.join('\n').replace(/\n/g, '<br>').replace(/<br>\s*<ul>/g, '<ul>').replace(/<\/ul>\s*<br>/g, '</ul>').replace(/<br>\s*<li>/g, '<li>').replace(/<\/li>\s*<br>/g, '</li>');
   return s.replace(/\u0000CB(\d+)\u0000/g, (m, i) => codeBlocks[+i]);
 }
+
 window.copyCode = function(btn) {
   const code = btn.nextElementSibling.innerText;
   const success = () => { btn.textContent = 'Tersalin!'; btn.classList.add('copied'); setTimeout(() => { btn.textContent = 'Salin'; btn.classList.remove('copied'); }, 2000); };
@@ -289,6 +340,7 @@ window.copyCode = function(btn) {
 };
 function showToast(msg, type = '') { els.toast.textContent = msg; els.toast.className = `toast show ${type}`; setTimeout(() => els.toast.classList.remove('show'), 3000); }
 
+/* --- CHAT CORE --- */
 function loadChats() { try { state.chats = JSON.parse(localStorage.getItem(LS_CHATS)) || []; } catch { state.chats = []; } }
 function saveChats() { localStorage.setItem(LS_CHATS, JSON.stringify(state.chats)); }
 function getActiveChat() { return state.chats.find(c => c.id === state.activeId); }
@@ -319,27 +371,142 @@ function renderMessages() {
   const chat = getActiveChat();
   if (!chat || !chat.messages.length) { els.welcome.style.display = 'flex'; els.messages.innerHTML = ''; return; }
   els.welcome.style.display = 'none';
-  els.messages.innerHTML = chat.messages.map(m => {
+  els.messages.innerHTML = chat.messages.map((m, index) => {
     if (m.role === 'user') {
       return `<div class="msg user">${m.image ? `<img src="${m.image}" style="max-width:200px;border-radius:12px;margin-bottom:8px;">` : ''}<div class="bubble">${escapeHtml(m.text)}</div></div>`;
     }
     if (m.role === 'error') return `<div class="msg model error"><div class="bubble">⚠️ ${escapeHtml(m.text)}</div></div>`;
-    return `<div class="msg model"><div class="bubble">${renderMarkdown(m.text)}</div></div>`;
+    
+    // Toolbar Download untuk pesan dari AI
+    const toolbar = `
+      <div class="action-toolbar">
+        <button class="dl-btn" onclick="downloadPDF(this)">📄 PDF</button>
+        <button class="dl-btn" onclick="downloadWord(this)">📝 Word</button>
+        <button class="dl-btn" onclick="downloadExcel(this)">📊 Excel</button>
+        <button class="dl-btn" onclick="downloadPPT('${encodeURIComponent(m.text)}')">📽️ PPT</button>
+      </div>
+    `;
+    return `<div class="msg model"><div class="bubble">${renderMarkdown(m.text)}${toolbar}</div></div>`;
   }).join('');
   els.chatArea.scrollTop = els.chatArea.scrollHeight;
 }
 
 /* ============================================================
-   SETTINGS & MODELS (UPDATED)
+   FUNGSI DOWNLOAD FILE
+   ============================================================ */
+window.downloadPDF = function(btn) {
+  const bubble = btn.closest('.bubble');
+  // Sembunyikan toolbar sebentar agar tidak ikut ter-print
+  btn.closest('.action-toolbar').style.display = 'none';
+  
+  const opt = {
+    margin: 10,
+    filename: 'SiganAI_Laporan.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f0f0f' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  // Gunakan clone untuk menghindari bug tampilan
+  const clone = bubble.cloneNode(true);
+  clone.style.color = '#000'; // Paksa teks hitam untuk PDF putih
+  clone.style.background = '#fff';
+  
+  html2pdf().set(opt).from(clone).save().then(() => {
+    btn.closest('.action-toolbar').style.display = 'flex';
+  });
+};
+
+window.downloadWord = function(btn) {
+  const bubble = btn.closest('.bubble');
+  const clone = bubble.cloneNode(true);
+  clone.querySelector('.action-toolbar').remove(); // Hapus tombol
+  clone.style.color = '#000';
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"><style>body { font-family: Arial, sans-serif; }</style></head>
+      <body>${clone.innerHTML}</body>
+    </html>
+  `;
+  
+  const blob = htmlDocx.asBlob(htmlContent);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'SiganAI_Dokumen.docx';
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+window.downloadExcel = function(btn) {
+  const bubble = btn.closest('.bubble');
+  const table = bubble.querySelector('table');
+  if (!table) { showToast('Tidak ada tabel di pesan ini. Minta AI membuat tabel dulu.', 'error'); return; }
+  
+  const wb = XLSX.utils.table_to_book(table, {sheet: "Data"});
+  XLSX.writeFile(wb, 'SiganAI_Data.xlsx');
+};
+
+window.downloadPPT = function(encodedText) {
+  const text = decodeURIComponent(encodedText);
+  let pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_16x9';
+  
+  // Pisahkan berdasarkan garis pemisah '---'
+  const slides = text.split(/\n\s*---\s*\n/);
+  let validSlides = 0;
+
+  slides.forEach(slideText => {
+    let lines = slideText.trim().split('\n').filter(l => l.trim());
+    if (lines.length === 0) return;
+
+    let slide = pptx.addSlide();
+    let title = "";
+    let bullets = [];
+
+    lines.forEach(line => {
+      if (line.startsWith('#')) {
+        title = line.replace(/#/g, '').trim();
+      } else if (line.startsWith('-') || line.startsWith('*')) {
+        bullets.push({ text: line.replace(/^[-*]\s*/, '').trim(), options: { bullet: true } });
+      } else {
+        // Jika tidak ada tanda list, anggap paragraf (jika bukan judul)
+        if (!title) title = line.trim();
+        else bullets.push({ text: line.trim(), options: { bullet: false } });
+      }
+    });
+
+    if (!title) title = `Slide ${validSlides + 1}`;
+
+    // Desain Slide (Hitam elegan)
+    slide.background = { color: "0F0F0F" };
+    slide.addText(title, { x: 0.5, y: 0.5, w: '90%', h: 1, fontSize: 28, bold: true, color: "3b82f6" });
+    if (bullets.length > 0) {
+      slide.addText(bullets, { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: "E5E5E5" });
+    }
+    validSlides++;
+  });
+
+  if (validSlides === 0) {
+    showToast('Format PPT tidak ditemukan. Minta AI buat PPT dengan benar.', 'error');
+    return;
+  }
+
+  pptx.writeFile({ fileName: "SiganAI_Presentasi.pptx" });
+};
+
+/* ============================================================
+   SETTINGS & MODELS
    ============================================================ */
 const GEMINI_MODELS = [
-  { id: 'gemini-flash-latest', name: 'Gemini Flash Latest (Sangat Cepat)' },
-  { id: 'gemini-pro-latest', name: 'Gemini Pro Latest (Lebih Pintar)' }
+  { id: 'gemini-flash-latest', name: 'Gemini Flash Latest' },
+  { id: 'gemini-pro-latest', name: 'Gemini Pro Latest' }
 ];
-// Groq telah menghapus Llama lama, kini memakai GPT-OSS
 const GROQ_MODELS = [
   { id: 'openai/gpt-oss-120b', name: 'GPT-OSS 120B (Pintar)' },
-  { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B (Super Cepat)' }
+  { id: 'openai/gpt-oss-20b', name: 'GPT-OSS 20B (Cepat)' }
 ];
 
 function updateSettingsUI() {
@@ -348,21 +515,16 @@ function updateSettingsUI() {
   
   if (p === 'gemini') {
     els.apiKeyLabel.textContent = 'API Key Gemini';
-    els.apiKeyInput.placeholder = 'AIzaSy...';
-    els.modelLabel.textContent = 'Model Gemini';
     els.modelSelect.innerHTML = GEMINI_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
     els.modelSelect.value = localStorage.getItem(LS_GEMINI_MODEL) || 'gemini-flash-latest';
   } else {
     els.apiKeyLabel.textContent = 'API Key Groq (gsk_...)';
-    els.apiKeyInput.placeholder = 'gsk_...';
-    els.modelLabel.textContent = 'Model Groq';
     els.modelSelect.innerHTML = GROQ_MODELS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
     els.modelSelect.value = localStorage.getItem(LS_GROQ_MODEL) || 'openai/gpt-oss-120b';
   }
 }
 
 els.providerSelect.onchange = updateSettingsUI;
-
 window.openSettings = () => {
   els.providerSelect.value = state.provider;
   updateSettingsUI();
@@ -386,7 +548,7 @@ els.saveSettings.onclick = () => {
   
   state.provider = p;
   els.settingsModal.classList.remove('show');
-  showToast(`Beralih ke ${p === 'gemini' ? 'Gemini' : 'Groq (GPT-OSS)'}`, 'success');
+  showToast(`Beralih ke ${p === 'gemini' ? 'Gemini' : 'Groq'}`, 'success');
 };
 
 /* ============================================================
@@ -399,12 +561,9 @@ async function fetchWithRetry(url, options, maxRetries = 2) {
       const response = await fetch(url, options);
       if (response.status === 429) {
         attempt++;
-        if (attempt >= maxRetries) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error(err.error?.message || 'Kuota habis. Ganti provider atau tunggu.');
-        }
+        if (attempt >= maxRetries) throw new Error('Kuota habis. Ganti provider atau tunggu.');
         const waitTime = Math.pow(2, attempt) * 1000;
-        showToast(`Rate limit. Mencoba lagi dalam ${waitTime/1000} detik...`);
+        showToast(`Rate limit. Mencoba lagi (${waitTime/1000}s)...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
@@ -537,7 +696,7 @@ async function callAITextVoice(userText) {
 }
 
 /* ============================================================
-   SEND MESSAGE (TEKS)
+   SEND MESSAGE
    ============================================================ */
 async function sendMessage() {
   const text = els.userInput.value.trim();
@@ -571,9 +730,13 @@ async function sendMessage() {
         els.messages.innerHTML += `<div class="msg model" id="streaming-bubble"><div class="bubble"></div></div>`;
         replyBubble = document.getElementById('streaming-bubble');
       }
+      
+      // Tampilkan teks yang sedang berjalan
       replyBubble.querySelector('.bubble').innerHTML = renderMarkdown(currentText);
       els.chatArea.scrollTop = els.chatArea.scrollHeight;
     });
+    
+    // Setelah selesai, simpan dan render ulang untuk memunculkan tombol download
     chat.messages.push({ role: 'model', text: fullReply, ts: Date.now() });
   } catch (e) {
     const indicator = document.getElementById('thinking-indicator');
@@ -714,7 +877,7 @@ els.closeSettings.onclick = () => els.settingsModal.classList.remove('show');
 /* ============================================================
    INIT
    ============================================================ */
-state.provider = localStorage.getItem(LS_PROVIDER) || 'gemini';
+state.provider = localStorage.getItem(LS_PROVIDER) || 'groq';
 loadChats();
 if (state.chats.length > 0) { state.activeId = state.chats[0].id; renderMessages(); }
 renderChatList();
